@@ -42,7 +42,7 @@ pipeline {
                 steps {
                     // sh 'docker swarm leave -f'
                     // sh 'docker run -d -p 8081:8081 --rm --name ekas-portal ktechnics/ktechnics-api-dev'
-                    sh 'docker swarm init --advertise-addr 199.192.18.137'
+                    // sh 'docker swarm init --advertise-addr 199.192.18.137'
                     sh 'docker stack deploy -c docker-compose.yml ktechnics-api-prod'
                 }
 

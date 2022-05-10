@@ -1,21 +1,5 @@
 version: '3'
 services:
-  ktechnics-api-portal:
-    image: omollo/ktechnics-api-prod
-    deploy:
-      replicas: 1
-    ports: 
-      - "9001:9001"
-      - "9002:9002"
-      - "9003:9003"
-    networks:
-      - host
-    volumes:
-      - logs:/go/logs
-    depends_on:
-      - "mysql-db"
-      - "redis"
-
   mysql-db:
     image: mysql:8.0
     cap_add:
@@ -40,6 +24,21 @@ services:
       - "3306:3306"
     expose:
       - 3306
+  ktechnics-api-portal:
+    image: omollo/ktechnics-api-prod
+    deploy:
+      replicas: 1
+    ports: 
+      - "9001:9001"
+      - "9002:9002"
+      - "9003:9003"
+    networks:
+      - host
+    volumes:
+      - logs:/go/logs
+    depends_on:
+      - "mysql-db"
+      - "redis"
   
   redis:
     image: "redis:alpine"
