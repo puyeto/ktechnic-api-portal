@@ -13,9 +13,8 @@ services:
       - db-data:/var/lib/mysql
       - ./db/my.cnf:/etc/mysql/conf.d/my.cnf
     ports:
-      - 3306:3306
-    expose:
-      - 3306
+      - 3307:3307
+
   ktechnics-api-portal:
     image: omollo/ktechnics-api-prod
     deploy:
