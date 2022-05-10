@@ -25,10 +25,26 @@ services:
       - "9003:9003"
     volumes:
       - logs:/go/logs
+    networks:
+      - host
     depends_on:
       - "db"
       - "redis"
+      - "mongodb_container"
   
+  mongodb_container:
+    image: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: safcom2012
+    ports:
+      - 27017:27017
+    # command: bash -c "mongod --repair && mongod"
+    networks:
+      - host
+    volumes:
+      - mongodb_data_container:/data/db
   redis:
     image: "redis:alpine"
     hostname: redis
@@ -38,6 +54,10 @@ services:
 volumes:
   mysql-volume:
   logs:
+  mongodb_data_container:
+
+networks:
+  host:
   
 
 
