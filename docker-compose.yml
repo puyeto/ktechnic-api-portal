@@ -13,10 +13,8 @@ services:
     volumes:
       - logs:/go/logs
     depends_on:
-      mysql-db:
-        condition: service_healthy
-      redis:
-        condition: service_completed_successfully
+      - "mysql-db"
+      - "redis"
 
   mysql-db:
     image: mysql:8.0
