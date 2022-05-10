@@ -9,9 +9,9 @@ services:
       MYSQL_PASSWORD: ktech-2030
       TZ: 'Africa/Nairobi'
     command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
-    volumes:
-      - db_data:/data/mysql
-      - ./db/my.cnf:/etc/mysql/conf.d/my.cnf
+    # volumes:
+    #   - db_data:/data/mysql
+    #   - ./db/my.cnf:/etc/mysql/conf.d/my.cnf
     ports:
       - 3307:3307
 
@@ -36,7 +36,7 @@ services:
       - "6379:6379"
   
 volumes:
-  db_data:
+  # db_data:
   logs:
   
 
