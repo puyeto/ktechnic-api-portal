@@ -1,4 +1,4 @@
-version: '3'
+version: '3.1'
 services:
   db:
     image: mysql:8.0
@@ -14,10 +14,6 @@ services:
       - ./db/my.cnf:/etc/mysql/conf.d/my.cnf
     ports:
       - 3307:3307
-    deploy:
-      placement:
-        constraints:
-            - node.role == manager
 
   ktechnics-api-portal:
     image: omollo/ktechnics-api-prod
@@ -27,8 +23,6 @@ services:
       - "9001:9001"
       - "9002:9002"
       - "9003:9003"
-    networks:
-      - host
     volumes:
       - logs:/go/logs
     depends_on:
@@ -43,11 +37,7 @@ services:
   
 volumes:
   db-data:
-    driver: local
   logs:
   
 
-# Networks to be created to facilitate communication between containers
-networks:
-  host:
 
