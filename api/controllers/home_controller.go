@@ -10,7 +10,7 @@ import (
 func (server *Server) Home() routing.Handler {
 	return func(c *routing.Context) error {
 		return c.Write(map[string]interface{}{
-			"message": "Welcome To Lectrotel Energy Monitoring System",
+			"message": "Welcome To KTechnics Energy System",
 		})
 	}
 }

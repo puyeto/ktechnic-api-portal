@@ -1,6 +1,6 @@
 version: '3'
 services:
-  ktechnics/ktechnics-api:
+  ktechnics-api-portal:
     image: omollo/ktechnics/ktechnics-api-prod
     deploy:
       replicas: 1
@@ -16,9 +16,47 @@ services:
       - host
     volumes:
       - logs:/go/logs
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+      redis:
+        condition: service_completed_successfully
 
+  mysql-db:
+    image: mysql:8.0
+    cap_add:
+      - SYS_NICE
+    container_name: mysql
+    restart: always
+    volumes:
+      - db-data:/var/lib/mysql
+      - ./db/my.cnf:/etc/mysql/conf.d/my.cnf
+    environment:
+      - MYSQL_ROOT_PASSWORD=ktech-2030
+      - MYSQL_USER=remote
+      - MYSQL_PASSWORD=ktech-2030
+      - MYSQL_DATABASE=ktechnics_portal
+      - TZ = Africa/Nairobi
+    command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: "/etc/init.d/mysql status"
+      interval: 1s
+      retries: 120
+    ports:
+      - "3306:3306"
+    expose:
+      - 3306
+  
+  redis:
+    image: "redis:alpine"
+    hostname: redis
+    ports:
+      - "6379:6379"
+  
 volumes:
   logs:
+  db-data:
+    driver: local
 
 # Networks to be created to facilitate communication between containers
 networks:

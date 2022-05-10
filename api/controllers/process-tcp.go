@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/binary"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	"math"
 	"net"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -18,6 +20,28 @@ import (
 const queueLimit = 50
 
 var server = Server{}
+
+func HandleConnection(c net.Conn) {
+	fmt.Printf("Serving %s\n", c.RemoteAddr().String())
+	for {
+		netData, err := bufio.NewReader(c).ReadString('\n')
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		temp := strings.TrimSpace(string(netData))
+		if temp == "STOP" {
+			break
+		}
+
+		fmt.Print(temp)
+
+		result := "Received\n"
+		c.Write([]byte(string(result)))
+	}
+	c.Close()
+}
 
 // HandleRequest Handles incoming requests.
 func HandleRequest(conn net.Conn) {
@@ -36,21 +60,22 @@ func HandleRequest(conn net.Conn) {
 
 		// return Response
 		result := "Received byte size = " + strconv.Itoa(reqLen) + "\n"
+		fmt.Println(result)
 		conn.Write([]byte(string(result)))
 
-		if reqLen == 0 {
-			return // connection already closed by client
-		}
+		// if reqLen == 0 {
+		// 	return // connection already closed by client
+		// }
 
-		if reqLen > 0 {
-			byteRead := bytes.NewReader(byteData)
+		// if reqLen > 0 {
+		// 	byteRead := bytes.NewReader(byteData)
 
-			mb := make([]byte, reqLen)
-			n1, _ := byteRead.Read(mb)
+		// 	mb := make([]byte, reqLen)
+		// 	n1, _ := byteRead.Read(mb)
 
-			processRequest(conn, mb, n1)
+		// 	processRequest(conn, mb, n1)
 
-		}
+		// }
 		// opsRate.Mark(1)
 	}
 }

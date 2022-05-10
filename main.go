@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	"log"
+	"math/rand"
 	"net"
 	"strconv"
+	"time"
 
 	"github.com/ktechnics/ktechnics-api/api"
 	"github.com/ktechnics/ktechnics-api/api/app"
@@ -23,7 +24,7 @@ func main() {
 	// create the logger
 	logger := logrus.New()
 	app.InitLogger(logger)
-	app.MongoDB = app.InitializeMongoDB("mongodb://root:safcom2012@172.105.34.129:27017/?authSource=admin", "lectrotel_portal", logger)
+	app.MongoDB = app.InitializeMongoDB("mongodb://root:safcom2012@172.105.34.129:27017/?authSource=admin", "ktechnics_portal", logger)
 
 	go api.Run(logger)
 
@@ -39,35 +40,21 @@ func main() {
 		panic(err)
 	}
 
-	var connections []net.Conn
-	defer func() {
-		for _, conn := range connections {
-			conn.Close()
-		}
-	}()
+	defer l.Close()
+	rand.Seed(time.Now().Unix())
 
 	logger.Infof("Listening on %v:%v", CONNHOST, CONNPORT)
 
 	for {
-		// Listen for an incoming connection.
-		conn, err := l.AcceptTCP()
-		if err != nil {
-			if ne, ok := err.(net.Error); ok && ne.Temporary() {
-				logger.Printf("accept temp err: %v", ne)
-				// continue
-			}
 
-			logger.Printf("accept err: %v", err)
+		conn, err := l.Accept()
+		if err != nil {
+			fmt.Println(err)
 			return
 		}
-		log.Println("Client ", conn.RemoteAddr(), " connected")
 
 		// Handle connections in a new goroutine.
-		go controllers.HandleRequest(conn)
+		go controllers.HandleConnection(conn)
 
-		connections = append(connections, conn)
-		if len(connections)%1000 == 0 {
-			fmt.Printf("total number of connections: %v", len(connections))
-		}
 	}
 }
