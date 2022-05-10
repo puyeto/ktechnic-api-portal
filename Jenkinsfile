@@ -9,7 +9,7 @@ pipeline {
                     stage('Express Image') {
                         steps {
                             sh 'docker build -f Dockerfile \
-                            -t omollo/ktechnics/ktechnics-api-prod:latest .'
+                            -t omollo/ktechnics-api-prod:latest .'
                         }
                     }                    
                 }
@@ -26,24 +26,24 @@ pipeline {
             }
             stage('DEPLOY') {
                 when {
-                    branch 'master'  //only run these steps on the master branch
+                    branch 'main'  //only run these steps on the main branch
                 }
                 steps {
                     // sh 'docker tag ktechnics/ktechnics-api-dev:latest omollo/ktechnics/ktechnics-api-prod:latest'
                     sh 'docker login -u "omollo" -p "safcom2012" docker.io'
-                    sh 'docker push omollo/ktechnics/ktechnics-api-prod:latest'
+                    sh 'docker push omollo/ktechnics-api-prod:latest'
                 }
             }
 
             stage('PUBLISH') {
                 when {
-                    branch 'master'  //only run these steps on the master branch
+                    branch 'main'  //only run these steps on the main branch
                 }
                 steps {
                     // sh 'docker swarm leave -f'
                     // sh 'docker run -d -p 8081:8081 --rm --name ekas-portal ktechnics/ktechnics-api-dev'
-                    // sh 'docker swarm init --advertise-addr 159.89.134.228'
-                    sh 'docker stack deploy -c docker-compose.yml ktechnics/ktechnics-api-prod'
+                    sh 'docker swarm init --advertise-addr 159.89.134.228'
+                    sh 'docker stack deploy -c docker-compose.yml ktechnics-api-prod'
                 }
 
             }

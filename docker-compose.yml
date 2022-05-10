@@ -1,13 +1,9 @@
 version: '3'
 services:
   ktechnics-api-portal:
-    image: omollo/ktechnics/ktechnics-api-prod
+    image: omollo/ktechnics-api-prod
     deploy:
       replicas: 1
-      resources:
-        limits:
-          cpus: "0.3"
-          memory: 200M
     ports: 
       - "9001:9001"
       - "9002:9002"
