@@ -14,6 +14,10 @@ services:
       - ./db/my.cnf:/etc/mysql/conf.d/my.cnf
     ports:
       - 3307:3307
+    deploy:
+      placement:
+        constraints:
+            - node.role == manager
 
   ktechnics-api-portal:
     image: omollo/ktechnics-api-prod
@@ -38,9 +42,10 @@ services:
       - "6379:6379"
   
 volumes:
-  logs:
   db-data:
     driver: local
+  logs:
+  
 
 # Networks to be created to facilitate communication between containers
 networks:
