@@ -14,7 +14,7 @@ services:
       - ./mysql-volume:/var/lib/mysql
       - ./db/my.cnf:/etc/mysql/conf.d/my.cnf
     ports:
-      - 3307:3306
+      - 3306:3306
 
   ktechnics-api-portal:
     image: omollo/ktechnics-api-prod
@@ -31,6 +31,11 @@ services:
       - db
       - redis
       - mongodb_container
+    environment:
+      - WAIT_HOSTS=db:3306
+      - WAIT_HOSTS_TIMEOUT=300
+      - WAIT_SLEEP_INTERVAL=30
+      - WAIT_HOST_CONNECT_TIMEOUT=30
   
   mongodb_container:
     image: mongo
