@@ -1,7 +1,8 @@
-version: '3.1'
+version: '3'
 services:
   db:
     image: mysql:8.0
+    restart: always
     environment:
       MYSQL_ROOT_PASSWORD: ktech-2030
       MYSQL_DATABASE: ktechnics_portal
@@ -10,13 +11,14 @@ services:
       TZ: 'Africa/Nairobi'
     command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     volumes:
-      - mysql-volume:/var/lib/mysql
-    #   - ./db/my.cnf:/etc/mysql/conf.d/my.cnf
+      - ./mysql-volume:/var/lib/mysql
+      - ./db/my.cnf:/etc/mysql/conf.d/my.cnf
     ports:
       - 3307:3306
 
   ktechnics-api-portal:
     image: omollo/ktechnics-api-prod
+    restart: always
     deploy:
       replicas: 1
     ports: 
@@ -28,9 +30,9 @@ services:
     networks:
       - host
     depends_on:
-      - "db"
-      - "redis"
-      - "mongodb_container"
+      - db
+      - redis
+      - mongodb_container
   
   mongodb_container:
     image: mongo
@@ -40,11 +42,8 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: safcom2012
     ports:
       - 27017:27017
-    # command: bash -c "mongod --repair && mongod"
-    networks:
-      - host
     volumes:
-      - mongodb_data_container:/data/db
+      - ./mongodb_data_container:/data/db
   redis:
     image: "redis:alpine"
     hostname: redis
@@ -55,9 +54,6 @@ volumes:
   mysql-volume:
   logs:
   mongodb_data_container:
-
-networks:
-  host:
   
 
 
