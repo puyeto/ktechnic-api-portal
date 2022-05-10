@@ -27,8 +27,6 @@ services:
       - "9003:9003"
     volumes:
       - logs:/go/logs
-    networks:
-      - host
     depends_on:
       - db
       - redis
