@@ -29,7 +29,7 @@ services:
     volumes:
       - logs:/go/logs
     depends_on:
-      - "mysql-db"
+      - "db"
       - "redis"
   
   redis:
