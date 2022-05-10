@@ -39,6 +39,7 @@ COPY --from=builder /app/main .
 COPY --from=builder /app/.env . 
 COPY --from=builder /app/server.crt . 
 COPY --from=builder /app/server.key . 
+COPY --from=builder /app/db/my.cnf . 
 RUN mkdir p logs  
 
 ENV GO_ENV production
