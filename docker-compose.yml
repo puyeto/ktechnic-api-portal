@@ -43,7 +43,7 @@ services:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: safcom2012
     ports:
-      - 27017:27017
+      - "27017:27017"
     # command: bash -c "mongod --repair && mongod"
     networks:
       - host
