@@ -36,7 +36,7 @@ services:
       - "mongodb_container"
   
   mongodb_container:
-    image: mongo
+    image: mongo:4
     restart: always
     container_name: mongodb
     environment:
