@@ -39,7 +39,7 @@ func (s *Server) InitializeRoutes(rg *routing.RouteGroup) {
 	// rg.Get("/meter", s.GetVMeterDetailsByRegNoController())
 	rg.Put("/meters", s.UpdateMeter())
 	rg.Delete("/meters/<id>", s.DeleteMeter())
-	rg.Get("/meter/datalog/<id>", s.GetMeterDataLogController())
+	rg.Get("/meter/telemetry/<id>", s.GetMeterTelemetryController())
 
 	// Gateways Routing
 	rg.Post("/gateways", s.CreateGatewaysHandler())

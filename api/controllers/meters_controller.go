@@ -122,8 +122,8 @@ func (server *Server) DeleteMeter() routing.Handler {
 	}
 }
 
-// GetMeterDataLogController ...
-func (server *Server) GetMeterDataLogController() routing.Handler {
+// GetMeterTelemetryController ...
+func (server *Server) GetMeterTelemetryController() routing.Handler {
 	return func(c *routing.Context) error {
 		order := c.Query("order_by", "desc")
 		filterfrom, err := strconv.Atoi(c.Query("filter_from", "0"))
@@ -142,12 +142,12 @@ func (server *Server) GetMeterDataLogController() routing.Handler {
 		}
 
 		meter := models.Meter{}
-		count := meter.CountMeterDataLogByID(app.MongoDB, uint64(mid), uint64(filterfrom), uint64(filterto))
+		count := meter.CountMeterTelemetryByID(app.MongoDB, uint64(mid), uint64(filterfrom), uint64(filterto))
 		var paginatedList *app.PaginatedList
 
 		if count > 0 {
 			paginatedList = getPaginatedListFromRequest(c, count)
-			meterReceived, err := meter.FindMeterDataLogByID(app.MongoDB, uint64(mid), order, paginatedList.Offset(), paginatedList.Limit(), uint64(filterfrom), uint64(filterto))
+			meterReceived, err := meter.FindMeterTelemetryByID(app.MongoDB, uint64(mid), order, paginatedList.Offset(), paginatedList.Limit(), uint64(filterfrom), uint64(filterto))
 			if err != nil {
 				return errors.NoContentFound(err.Error())
 			}

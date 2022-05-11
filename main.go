@@ -24,7 +24,6 @@ func main() {
 	// create the logger
 	logger := logrus.New()
 	app.InitLogger(logger)
-	app.MongoDB = app.InitializeMongoDB("mongodb://root:safcom2012@172.105.34.129:27017/?authSource=admin", "ktechnics_portal", logger)
 
 	go api.Run(logger)
 

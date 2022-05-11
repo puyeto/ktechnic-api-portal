@@ -194,8 +194,8 @@ func (p *Meter) DeleteAMeter(db *gorm.DB, vid uint32) (int64, error) {
 	return db.RowsAffected, nil
 }
 
-// CountMeterDataLogByID ...
-func (p *Meter) CountMeterDataLogByID(db *mongo.Database, mid uint64, filterfrom, filterto uint64) int {
+// CountMeterTelemetryByID ...
+func (p *Meter) CountMeterTelemetryByID(db *mongo.Database, mid uint64, filterfrom, filterto uint64) int {
 	filter := bson.D{}
 	if filterfrom > 0 && filterto > 0 {
 		filter = bson.D{{"datetimestamp", bson.D{{"$gte", filterfrom}}}, {"datetimestamp", bson.D{{"$lte", filterto}}}}
@@ -207,9 +207,9 @@ func (p *Meter) CountMeterDataLogByID(db *mongo.Database, mid uint64, filterfrom
 	return count
 }
 
-// FindMeterDataLogByID ...
-func (p *Meter) FindMeterDataLogByID(db *mongo.Database, mid uint64, order string, offset, limit int, filterfrom, filterto uint64) (*[]DeviceData, error) {
-	var datalog []DeviceData
+// FindMeterTelemetryByID ...
+func (p *Meter) FindMeterTelemetryByID(db *mongo.Database, mid uint64, order string, offset, limit int, filterfrom, filterto uint64) (*[]DeviceData, error) {
+	var Telemetry []DeviceData
 
 	// Get collection
 	collection := db.Collection("data_" + strconv.FormatInt(int64(mid), 10))
@@ -234,7 +234,7 @@ func (p *Meter) FindMeterDataLogByID(db *mongo.Database, mid uint64, order strin
 
 	cur, err := collection.Find(ctx, filter, findOptions)
 	if err != nil {
-		return &datalog, err
+		return &Telemetry, err
 	}
 	defer cur.Close(ctx)
 
@@ -244,16 +244,16 @@ func (p *Meter) FindMeterDataLogByID(db *mongo.Database, mid uint64, order strin
 		if err != nil {
 			continue
 		}
-		datalog = append(datalog, item)
+		Telemetry = append(Telemetry, item)
 
 		// fmt.Println("Found a document: ", item)
 
 	}
 	if err := cur.Err(); err != nil {
-		return &datalog, err
+		return &Telemetry, err
 	}
 
-	return &datalog, err
+	return &Telemetry, err
 }
 
 // Count returns the number of trip records in the database.

@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
+	"github.com/ktechnics/ktechnics-api/api/app"
 	"github.com/ktechnics/ktechnics-api/api/controllers"
 	"github.com/sirupsen/logrus"
 )
@@ -28,6 +29,8 @@ func Run(logger *logrus.Logger) {
 	} else {
 		logger.Println("We are getting the env values")
 	}
+
+	app.MongoDB = app.InitializeMongoDB(os.Getenv("MONGO_PROD_DNS"), os.Getenv("MONGO_DB_NAME"), logger)
 
 	if os.Getenv("GO_ENV") == "production" {
 		server.Initialize(os.Getenv("DB_DRIVER"), os.Getenv("DB_PROD_USER"), os.Getenv("DB_PROD_PASSWORD"), os.Getenv("DB_PROD_PORT"), os.Getenv("DB_PROD_HOST"), os.Getenv("DB_PROD_NAME"), logger)
