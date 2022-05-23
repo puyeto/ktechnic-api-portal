@@ -9,21 +9,20 @@ import (
 
 // Gateway ...
 type Gateway struct {
-	ID                 int       `gorm:"primary_key;auto_increment" json:"id" db:"id"`
-	SectionID          int       `gorm:"null" json:"section_id"`
-	CompanyID          uint32    `gorm:"not null;" json:"company_id"`
-	Company            Companies `json:"company_details"`
-	GatewayName        string    `gorm:"not null;" json:"gateway_name" db:"gateway_name"`
-	Status             int8      `gorm:"not null;" json:"status" db:"status"`
-	GatewayDescription string    `gorm:"null;" json:"gateway_description"`
-	CreatedAt          time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
-	UpdatedAt          time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"updated_at"`
-	AddedBy            uint32    `gorm:"not null" json:"added_by"`
+	ID                 int                 `gorm:"primary_key;auto_increment" json:"id" db:"id"`
+	SectionID          int                 `gorm:"null" json:"section_id"`
+	CompanyID          uint32              `gorm:"not null;" json:"company_id"`
+	GatewayName        string              `gorm:"not null;" json:"gateway_name" db:"gateway_name"`
+	Status             int8                `gorm:"not null;" json:"status" db:"status"`
+	GatewayDescription string              `gorm:"null;" json:"gateway_description"`
+	CreatedAt          time.Time           `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
+	UpdatedAt          time.Time           `gorm:"default:CURRENT_TIMESTAMP" json:"updated_at"`
+	AddedBy            uint32              `gorm:"-" json:"added_by"`
+	Company            CompanyShortDetails `gorm:"-" json:"company_details"`
 }
 
 // Prepare ...
 func (p *Gateway) Prepare() {
-	p.Company = Companies{}
 	p.CreatedAt = time.Now()
 	p.UpdatedAt = time.Now()
 	p.Status = 1

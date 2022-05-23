@@ -17,23 +17,22 @@ import (
 
 // Meter ...
 type Meter struct {
-	ID               uint32    `gorm:"primary_key;auto_increment" json:"id"`
-	CompanyID        uint32    `gorm:"not null;" json:"company_id"`
-	Company          Companies `gorm:"-" json:"company_details"`
-	GatewayID        uint32    `gorm:"not null;" json:"gateway_id"`
-	Gateway          Gateway   `gorm:"-" json:"gateway_details"`
-	MeterName        string    `gorm:"not null" json:"meter_name"`
-	MeterSerial      string    `gorm:"not null" json:"meter_serial"`
-	Status           int8      `gorm:"not null;" json:"status" db:"status"`
-	MeterDescription string    `gorm:"null" json:"meter_description"`
-	CreatedAt        time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
-	UpdatedAt        time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"updated_at"`
-	AddedBy          uint32    `gorm:"not null" json:"added_by"`
+	ID               uint32              `gorm:"primary_key;auto_increment" json:"id"`
+	CompanyID        uint32              `gorm:"not null;" json:"company_id"`
+	GatewayID        uint32              `gorm:"not null;" json:"gateway_id"`
+	MeterName        string              `gorm:"not null" json:"meter_name"`
+	MeterSerial      string              `gorm:"not null" json:"meter_serial"`
+	Status           int8                `gorm:"not null;" json:"status" db:"status"`
+	MeterDescription string              `gorm:"null" json:"meter_description"`
+	CreatedAt        time.Time           `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
+	UpdatedAt        time.Time           `gorm:"default:CURRENT_TIMESTAMP" json:"updated_at"`
+	AddedBy          uint32              `gorm:"-" json:"added_by"`
+	Gateway          Gateway             `gorm:"-" json:"gateway_details"`
+	Company          CompanyShortDetails `gorm:"-" json:"company_details"`
 }
 
 // Prepare ...
 func (p *Meter) Prepare() {
-	p.Gateway = Gateway{}
 	p.CreatedAt = time.Now()
 	p.UpdatedAt = time.Now()
 	p.Status = 1
@@ -85,6 +84,8 @@ func (p *Meter) SaveMeter(db *gorm.DB) (*Meter, error) {
 func (p *Meter) ListAllMeters(db *gorm.DB) (*[]Meter, error) {
 	var err error
 	meters := []Meter{}
+	var a CompanyShortDetails
+	p.Gateway.Company = a
 	tx := db.Begin()
 	defer func() {
 		if r := recover(); r != nil {

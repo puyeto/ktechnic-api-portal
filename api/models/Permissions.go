@@ -16,9 +16,9 @@ type Permissions struct {
 	FieldName    string    `gorm:"size:55;not null" json:"field_name"`
 	ColumnName   string    `gorm:"size:55;not null" json:"column_name"`
 	DefaultValue bool      `gorm:"-" json:"default_value"`
-	CreatedAt    time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
-	UpdatedAt    time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"updated_at"`
-	AddedBy      uint32    `gorm:"not null" json:"added_by"`
+	CreatedAt    time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"-"`
+	UpdatedAt    time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"-"`
+	AddedBy      uint32    `gorm:"not null" json:"-"`
 }
 
 // Prepare ...
@@ -98,7 +98,13 @@ type Roles struct {
 func (p *Roles) List(db *gorm.DB, cid, rid uint32) (*[]Roles, error) {
 	var err error
 	con := []Roles{}
-	err = db.Debug().Where("id >= ?", rid).Model(&Roles{}).Limit(10).Find(&con).Error
+
+	whre := "id >= ?"
+	if rid == 1001 {
+		whre = "id = ?"
+	}
+
+	err = db.Debug().Where(whre, rid).Model(&Roles{}).Limit(10).Find(&con).Error
 	if err != nil {
 		return &con, err
 	}

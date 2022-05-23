@@ -40,7 +40,7 @@ func BadRequest(err string) *APIError {
 
 // ValidationRequest ...
 func ValidationRequest(err string) *APIError {
-	return NewAPIError(http.StatusBadRequest, "Validation Failed: "+err, Params{"error": err})
+	return NewAPIError(http.StatusBadRequest, "VALIDATION_FAILED", Params{"error": err})
 }
 
 // NoContentFound creates a new API error representing a no content request (HTTP 204)

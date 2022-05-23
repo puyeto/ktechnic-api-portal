@@ -15,21 +15,21 @@ import (
 
 // User ...
 type User struct {
-	ID              uint32         `gorm:"primary_key;auto_increment" json:"id"`
-	Nickname        string         `gorm:"size:255;not null;unique" json:"nickname"`
-	Email           string         `gorm:"size:100;not null;unique" json:"email"`
-	Phone           string         `gorm:"size:100;not null" json:"phone"`
-	Password        string         `gorm:"size:100;not null;" json:"password,omitempty"`
-	CompanyID       uint32         `gorm:"not null;" json:"company_id"`
-	Company         Companies      `gorm:"-" json:"company,omitempty"`
-	RoleID          int            `gorm:"not null;" json:"role_id,omitempty"`
-	CreatedAt       time.Time      `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
-	UpdatedAt       time.Time      `gorm:"default:CURRENT_TIMESTAMP" json:"updated_at"`
-	UpdatedBy       uint32         `json:"updated_by"`
-	Token           string         `gorm:"-" json:"token,omitempty"`
-	RoleName        string         `gorm:"-" json:"role_name,omitempty"`
-	PermissionField []interface{}  `gorm:"-" json:"permission_field"`
-	Permissions     map[string]int `gorm:"-" json:"permissions,omitempty"`
+	ID              uint32              `gorm:"primary_key;auto_increment" json:"id"`
+	Nickname        string              `gorm:"size:255;not null;unique" json:"nickname"`
+	Email           string              `gorm:"size:100;not null;unique" json:"email"`
+	Phone           string              `gorm:"size:100;not null" json:"phone"`
+	Password        string              `gorm:"size:100;not null;" json:"password,omitempty"`
+	CompanyID       uint32              `gorm:"not null;" json:"company_id"`
+	RoleID          int                 `gorm:"not null;" json:"role_id,omitempty"`
+	CreatedAt       time.Time           `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
+	UpdatedAt       time.Time           `gorm:"default:CURRENT_TIMESTAMP" json:"updated_at"`
+	UpdatedBy       uint32              `json:"updated_by"`
+	Token           string              `gorm:"-" json:"token,omitempty"`
+	RoleName        string              `gorm:"-" json:"role_name,omitempty"`
+	Company         CompanyShortDetails `gorm:"-" json:"company"`
+	PermissionField []interface{}       `gorm:"-" json:"permission_field"`
+	Permissions     map[string]int      `gorm:"-" json:"permissions,omitempty"`
 }
 
 // Hash ...
@@ -118,16 +118,15 @@ func (u *User) ListUsers(db *gorm.DB) (*[]User, error) {
 	var err error
 	users := []User{}
 
+	query := db.Debug().Select("users.id, users.nickname, users.email, users.phone, users.company_id, users.role_id, users.created_at, users.updated_at, users.updated_by, role_name")
+
 	if u.CompanyID > 0 {
-		err = db.Debug().Where("company_id = ?", u.CompanyID).
-			Select("users.id, users.nickname, users.email, users.phone, users.company_id, users.role_id, users.created_at, users.updated_at, users.updated_by, role_name").
-			Limit(100).Joins("left join roles on roles.id = users.role_id").Order("users.id ASC").Find(&users).Error
+		query = query.Where("company_id = ?", u.CompanyID).Limit(100).Joins("left join roles on roles.id = users.role_id").Order("users.id ASC")
 	} else {
-		err = db.Debug().
-			Select("users.id, users.nickname, users.email, users.phone, users.company_id, users.role_id, users.created_at, users.updated_at, users.updated_by, role_name").
-			Limit(100).Joins("left join roles on roles.id = users.role_id").Order("users.id ASC").Find(&users).Error
+		query = query.Limit(100).Joins("left join roles on roles.id = users.role_id")
 	}
-	if err != nil {
+
+	if err = query.Order("users.id ASC").Find(&users).Error; err != nil {
 		return &users, err
 	}
 

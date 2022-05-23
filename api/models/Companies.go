@@ -22,6 +22,11 @@ type Companies struct {
 	AddedBy         uint32    `json:"added_by"`
 }
 
+type CompanyShortDetails struct {
+	ID          uint32 `json:"id"`
+	CompanyName string `json:"company_name"`
+}
+
 // Prepare ...
 func (p *Companies) Prepare() {
 	p.ID = 0

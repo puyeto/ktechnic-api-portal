@@ -51,7 +51,7 @@ func (server *Server) SignIn(email, password string) (m models.User, e error) {
 	}
 
 	if user.CompanyID > 0 {
-		if err := server.DB.Debug().Model(models.User{}).Where("id = ?", user.CompanyID).Take(&user.Company).Error; err != nil {
+		if err := server.DB.Debug().Table("companies").Model(models.Companies{}).Where("id = ?", user.CompanyID).Take(&user.Company).Error; err != nil {
 			return m, err
 		}
 	}
@@ -77,7 +77,7 @@ func (server *Server) SignIn(email, password string) (m models.User, e error) {
 
 	user.Password = ""
 	if user.CompanyID == 0 {
-		user.Company = models.Companies{}
+		user.Company = models.CompanyShortDetails{}
 	}
 
 	return user, err
