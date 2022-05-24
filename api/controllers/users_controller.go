@@ -50,14 +50,14 @@ func (server *Server) ListUsersController() routing.Handler {
 
 		// get cid
 		user.CompanyID = auth.ExtractCompanyID(c)
+		roleid := auth.ExtractRoleID(c)
+		user.UpdatedBy = auth.ExtractTokenID(c)
 
-		users, err := user.ListUsers(server.DB)
+		users, err := user.ListUsers(server.DB, roleid)
 		if err != nil {
 			return errors.NoContentFound(err.Error())
 		}
-		return c.Write(map[string]interface{}{
-			"response": users,
-		})
+		return c.Write(users)
 	}
 }
 

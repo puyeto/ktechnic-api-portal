@@ -22,11 +22,11 @@ type User struct {
 	Password        string              `gorm:"size:100;not null;" json:"password,omitempty"`
 	CompanyID       uint32              `gorm:"not null;" json:"company_id"`
 	RoleID          int                 `gorm:"not null;" json:"role_id,omitempty"`
-	CreatedAt       time.Time           `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
-	UpdatedAt       time.Time           `gorm:"default:CURRENT_TIMESTAMP" json:"updated_at"`
 	UpdatedBy       uint32              `json:"updated_by"`
 	Token           string              `gorm:"-" json:"token,omitempty"`
 	RoleName        string              `gorm:"-" json:"role_name,omitempty"`
+	CreatedAt       time.Time           `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
+	UpdatedAt       time.Time           `gorm:"default:CURRENT_TIMESTAMP" json:"updated_at"`
 	Company         CompanyShortDetails `gorm:"-" json:"company"`
 	PermissionField []interface{}       `gorm:"-" json:"permission_field"`
 	Permissions     map[string]int      `gorm:"-" json:"permissions,omitempty"`
@@ -114,19 +114,19 @@ func (u *User) Validate(action string) error {
 }
 
 // ListUsers Get all users...
-func (u *User) ListUsers(db *gorm.DB) (*[]User, error) {
+func (u *User) ListUsers(db *gorm.DB, roleid uint32) (*[]User, error) {
 	var err error
 	users := []User{}
 
 	query := db.Debug().Select("users.id, users.nickname, users.email, users.phone, users.company_id, users.role_id, users.created_at, users.updated_at, users.updated_by, role_name")
 
-	if u.CompanyID > 0 {
-		query = query.Where("company_id = ?", u.CompanyID).Limit(100).Joins("left join roles on roles.id = users.role_id").Order("users.id ASC")
-	} else {
-		query = query.Limit(100).Joins("left join roles on roles.id = users.role_id")
+	if roleid == 1002 {
+		query = query.Where("company_id = ?", u.CompanyID)
+	} else if roleid > 1002 {
+		query = query.Where("added_by = ?", u.UpdatedBy)
 	}
 
-	if err = query.Order("users.id ASC").Find(&users).Error; err != nil {
+	if err = query.Limit(100).Joins("left join roles on roles.id = users.role_id").Order("users.id ASC").Find(&users).Error; err != nil {
 		return &users, err
 	}
 

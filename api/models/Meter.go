@@ -81,11 +81,9 @@ func (p *Meter) SaveMeter(db *gorm.DB) (*Meter, error) {
 }
 
 // ListAllMeters ...
-func (p *Meter) ListAllMeters(db *gorm.DB) (*[]Meter, error) {
+func (p *Meter) ListAllMeters(db *gorm.DB, roleid uint32) (*[]Meter, error) {
 	var err error
 	meters := []Meter{}
-	var a CompanyShortDetails
-	p.Gateway.Company = a
 	tx := db.Begin()
 	defer func() {
 		if r := recover(); r != nil {
@@ -96,26 +94,27 @@ func (p *Meter) ListAllMeters(db *gorm.DB) (*[]Meter, error) {
 		return &meters, err
 	}
 
-	if p.CompanyID > 0 {
-		err = tx.Debug().Where("company_id = ?", p.CompanyID).Model(&Meter{}).Limit(100).Find(&meters).Error
-	} else {
-		err = tx.Debug().Model(&Meter{}).Limit(100).Find(&meters).Error
+	query := tx.Debug()
+	if roleid == 1002 {
+		query = query.Where("company_id = ?", p.CompanyID)
+	} else if roleid > 1002 {
+		query = query.Where("added_by = ?", p.AddedBy)
 	}
 
+	err = query.Model(&Meter{}).Limit(100).Find(&meters).Error
+
 	if err != nil {
-		tx.Rollback()
 		return &meters, err
 	}
 
 	if len(meters) > 0 {
 		for i := range meters {
-			tx.Debug().Model(&Companies{}).Where("id = ?", meters[i].CompanyID).Take(&meters[i].Company)
+			tx.Debug().Table("companies").Model(&Companies{}).Where("id = ?", meters[i].CompanyID).Take(&meters[i].Company)
 			tx.Debug().Model(&Gateway{}).Where("id = ?", meters[i].GatewayID).Take(&meters[i].Gateway)
 		}
 	}
 
 	if err := tx.Commit().Error; err != nil {
-		tx.Rollback()
 		return &meters, err
 	}
 

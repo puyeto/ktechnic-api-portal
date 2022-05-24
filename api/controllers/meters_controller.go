@@ -32,9 +32,7 @@ func (server *Server) CreateMeter() routing.Handler {
 			return errors.InternalServerError(err.Error())
 		}
 
-		return c.Write(map[string]interface{}{
-			"response": meterCreated,
-		})
+		return c.Write(meterCreated)
 	}
 }
 
@@ -44,16 +42,14 @@ func (server *Server) ListMeters() routing.Handler {
 		meter := models.Meter{}
 
 		meter.CompanyID = auth.ExtractCompanyID(c)
-
-		meters, err := meter.ListAllMeters(server.DB)
+		roleid := auth.ExtractRoleID(c)
+		meter.AddedBy = auth.ExtractTokenID(c)
+		meters, err := meter.ListAllMeters(server.DB, roleid)
 		if err != nil {
 			return errors.InternalServerError(err.Error())
 		}
 
-		// responses.JSON(w, http.StatusOK, meters)
-		return c.Write(map[string]interface{}{
-			"response": meters,
-		})
+		return c.Write(meters)
 	}
 }
 
@@ -71,9 +67,7 @@ func (server *Server) GetMeter() routing.Handler {
 			return errors.NoContentFound(err.Error())
 		}
 
-		return c.Write(map[string]interface{}{
-			"response": meterReceived,
-		})
+		return c.Write(meterReceived)
 	}
 }
 
