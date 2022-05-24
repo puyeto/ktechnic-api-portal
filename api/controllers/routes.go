@@ -52,4 +52,8 @@ func (s *Server) InitializeRoutes(rg *routing.RouteGroup) {
 	rg.Post("/settings/permissions", s.CreatePermissions())
 	rg.Get("/settings/permissions", s.ListPermissions())
 	rg.Get("/settings/roles", s.ListRoles())
+
+	rg.Get("/pricing/plan", s.ListPricePlanHandler())
+	rg.Post("/pricing/plan", s.CreatePricePlanHandler())
+	rg.Delete("/pricing/plan/<id>", s.DeletePricePlanHandler())
 }

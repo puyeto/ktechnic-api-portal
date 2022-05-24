@@ -31,9 +31,7 @@ func (server *Server) CreateGatewaysHandler() routing.Handler {
 			return errors.InternalServerError(err.Error())
 		}
 
-		return c.Write(map[string]interface{}{
-			"response": gatewayCreated,
-		})
+		return c.Write(gatewayCreated)
 	}
 }
 
@@ -50,9 +48,7 @@ func (server *Server) ListGatewaysHandler() routing.Handler {
 		}
 
 		// responses.JSON(w, http.StatusOK, gateways)
-		return c.Write(map[string]interface{}{
-			"response": gateways,
-		})
+		return c.Write(gateways)
 	}
 }
 
@@ -106,7 +102,7 @@ func (server *Server) DeleteGatewayHandler() routing.Handler {
 			return errors.BadRequest(err.Error())
 		}
 
-		_, err = gateway.DeleteAGateway(server.DB, uint32(vid))
+		err = gateway.DeleteAGateway(server.DB, uint32(vid))
 		if err != nil {
 			return errors.InternalServerError(err.Error())
 		}

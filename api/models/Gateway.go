@@ -96,7 +96,6 @@ func (p *Gateway) ListAllGateways(db *gorm.DB) (*[]Gateway, error) {
 	}
 
 	if err != nil {
-		tx.Rollback()
 		return &gateways, err
 	}
 
@@ -107,7 +106,6 @@ func (p *Gateway) ListAllGateways(db *gorm.DB) (*[]Gateway, error) {
 	}
 
 	if err := tx.Commit().Error; err != nil {
-		tx.Rollback()
 		return &gateways, err
 	}
 
@@ -155,43 +153,13 @@ func (p *Gateway) UpdateAGateway(db *gorm.DB) (*Gateway, error) {
 }
 
 // DeleteAGateway ...
-func (p *Gateway) DeleteAGateway(db *gorm.DB, vid uint32) (int64, error) {
-	tx := db.Begin()
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-	if err := tx.Error; err != nil {
-		return 0, err
-	}
-
-	err := tx.Debug().Model(&Gateway{}).Where("id = ?", vid).Take(&p).Error
-	if err != nil {
-		return 0, err
-	}
-
-	if err = tx.Debug().Model(&User{}).Where("id = ?", p.AddedBy).UpdateColumn("gateway_count", gorm.Expr("gateway_count - ?", 1)).Error; err != nil {
-		tx.Rollback()
-		return 0, err
-	}
-
-	if err = tx.Debug().Model(&Companies{}).Where("id = ?", p.CompanyID).UpdateColumn("gateway_count", gorm.Expr("gateway_count - ?", 1)).Error; err != nil {
-		tx.Rollback()
-		return 0, err
-	}
-
-	if err = tx.Debug().Model(&Gateway{}).Where("id = ?", vid).Delete(&Gateway{}).Error; err != nil {
+func (p *Gateway) DeleteAGateway(db *gorm.DB, vid uint32) error {
+	if err := db.Debug().Model(&Gateway{}).Where("id = ?", vid).Delete(&Gateway{}).Error; err != nil {
 		if gorm.IsRecordNotFoundError(db.Error) {
-			return 0, errors.New("Gateway not found")
+			return errors.New("Gateway not found")
 		}
-		return 0, db.Error
+		return db.Error
 	}
 
-	if err = tx.Commit().Error; err != nil {
-		tx.Rollback()
-		return 0, err
-	}
-
-	return db.RowsAffected, nil
+	return nil
 }

@@ -20,8 +20,9 @@ type Meter struct {
 	ID               uint32              `gorm:"primary_key;auto_increment" json:"id"`
 	CompanyID        uint32              `gorm:"not null;" json:"company_id"`
 	GatewayID        uint32              `gorm:"not null;" json:"gateway_id"`
+	PricePlanID      uint32              `json:"prica_plan_id" gorm:"not null"`
 	MeterName        string              `gorm:"not null" json:"meter_name"`
-	MeterSerial      string              `gorm:"not null" json:"meter_serial"`
+	MeterNumber      string              `gorm:"not null" json:"meter_number"`
 	Status           int8                `gorm:"not null;" json:"status" db:"status"`
 	MeterDescription string              `gorm:"null" json:"meter_description"`
 	CreatedAt        time.Time           `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
@@ -44,18 +45,21 @@ func (p *Meter) Validate() error {
 	if p.MeterName == "" {
 		return errors.New("Meter Name is Required")
 	}
-	if p.MeterSerial == "" {
+	if p.MeterNumber == "" {
 		return errors.New("Meter Serial is Required")
 	}
 	if p.GatewayID == 0 {
 		return errors.New("Gateway is Required")
+	}
+	if p.PricePlanID == 0 {
+		return errors.New("Price Plan is Required")
 	}
 
 	return nil
 }
 
 // SaveMeter ...
-func (p *Meter) SaveMeter(db *gorm.DB) (*Meter, error) {
+func (m *Meter) SaveMeter(db *gorm.DB) (*Meter, error) {
 	var err error
 	tx := db.Begin()
 	defer func() {
@@ -67,7 +71,7 @@ func (p *Meter) SaveMeter(db *gorm.DB) (*Meter, error) {
 		return &Meter{}, err
 	}
 
-	if err = tx.Debug().Model(&Meter{}).Create(&p).Error; err != nil {
+	if err = tx.Debug().Model(&Meter{}).Create(&m).Error; err != nil {
 		tx.Rollback()
 		return &Meter{}, err
 	}
@@ -77,11 +81,11 @@ func (p *Meter) SaveMeter(db *gorm.DB) (*Meter, error) {
 		return &Meter{}, err
 	}
 
-	return p, nil
+	return m, nil
 }
 
 // ListAllMeters ...
-func (p *Meter) ListAllMeters(db *gorm.DB, roleid uint32) (*[]Meter, error) {
+func (m *Meter) ListAllMeters(db *gorm.DB, roleid uint32) (*[]Meter, error) {
 	var err error
 	meters := []Meter{}
 	tx := db.Begin()
@@ -96,9 +100,9 @@ func (p *Meter) ListAllMeters(db *gorm.DB, roleid uint32) (*[]Meter, error) {
 
 	query := tx.Debug()
 	if roleid == 1002 {
-		query = query.Where("company_id = ?", p.CompanyID)
+		query = query.Where("company_id = ?", m.CompanyID)
 	} else if roleid > 1002 {
-		query = query.Where("added_by = ?", p.AddedBy)
+		query = query.Where("added_by = ?", m.AddedBy)
 	}
 
 	err = query.Model(&Meter{}).Limit(100).Find(&meters).Error
@@ -143,8 +147,9 @@ func (p *Meter) UpdateAMeter(db *gorm.DB) (*Meter, error) {
 	db.Debug().Model(&Meter{}).Where("id = ?", p.ID).Take(&Meter{}).UpdateColumns(
 		map[string]interface{}{
 			"gateway_id":        p.GatewayID,
+			"price_plan_id":     p.PricePlanID,
 			"meter_name":        p.MeterName,
-			"meter_serial":      p.MeterSerial,
+			"meter_number":      p.MeterNumber,
 			"meter_description": p.MeterDescription,
 			"updated_at":        p.UpdatedAt,
 		},
