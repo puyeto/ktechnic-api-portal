@@ -37,9 +37,7 @@ func (server *Server) CreateUserController() routing.Handler {
 			//  formaterror.FormatError(err.Error())
 			return errors.InternalServerError(err.Error())
 		}
-		return c.Write(map[string]interface{}{
-			"response": userCreated,
-		})
+		return c.Write(userCreated)
 	}
 }
 
@@ -70,9 +68,7 @@ func (server *Server) GetDriversController() routing.Handler {
 		if err != nil {
 			return errors.NoContentFound(err.Error())
 		}
-		return c.Write(map[string]interface{}{
-			"response": users,
-		})
+		return c.Write(users)
 	}
 }
 
@@ -90,9 +86,7 @@ func (server *Server) GetUserController() routing.Handler {
 			return errors.NoContentFound(err.Error())
 		}
 
-		return c.Write(map[string]interface{}{
-			"response": userDetails,
-		})
+		return c.Write(userDetails)
 	}
 }
 
@@ -117,9 +111,7 @@ func (server *Server) UpdateUserController() routing.Handler {
 			return errors.InternalServerError(formattedError.Error())
 		}
 
-		return c.Write(map[string]interface{}{
-			"response": updatedUser,
-		})
+		return c.Write(updatedUser)
 	}
 }
 

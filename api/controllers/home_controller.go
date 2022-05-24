@@ -22,8 +22,6 @@ func (server *Server) DashboardStatsHandler() routing.Handler {
 
 		ds.CompanyID = auth.ExtractCompanyID(c)
 
-		return c.Write(map[string]interface{}{
-			"response": ds.GetUserDashboardStats(server.DB),
-		})
+		return c.Write(ds.GetUserDashboardStats(server.DB))
 	}
 }

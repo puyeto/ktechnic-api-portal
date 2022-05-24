@@ -89,9 +89,7 @@ func (server *Server) UpdateMeter() routing.Handler {
 			return errors.InternalServerError(err.Error())
 		}
 
-		return c.Write(map[string]interface{}{
-			"response": meterUpdated,
-		})
+		return c.Write(meterUpdated)
 	}
 }
 

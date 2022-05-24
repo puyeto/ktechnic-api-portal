@@ -29,9 +29,7 @@ func (server *Server) Login() routing.Handler {
 			return errors.InternalServerError(err.Error())
 		}
 		// responses.JSON(w, http.StatusOK, token)
-		return c.Write(map[string]interface{}{
-			"response": token,
-		})
+		return c.Write(token)
 	}
 }
 

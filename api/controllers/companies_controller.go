@@ -29,9 +29,7 @@ func (server *Server) CreateCompanies() routing.Handler {
 			return errors.InternalServerError(err.Error())
 		}
 
-		return c.Write(map[string]interface{}{
-			"response": companyCreated,
-		})
+		return c.Write(companyCreated)
 	}
 }
 
@@ -44,8 +42,6 @@ func (server *Server) ListCompanies() routing.Handler {
 			return errors.InternalServerError(err.Error())
 		}
 
-		return c.Write(map[string]interface{}{
-			"response": companies,
-		})
+		return c.Write(companies)
 	}
 }

@@ -20,9 +20,7 @@ func (server *Server) ListPermissions() routing.Handler {
 		}
 
 		// responses.JSON(w, http.StatusOK, vehicles)
-		return c.Write(map[string]interface{}{
-			"response": perms,
-		})
+		return c.Write(perms)
 	}
 }
 
@@ -48,9 +46,7 @@ func (server *Server) CreatePermissions() routing.Handler {
 			return errors.InternalServerError(err.Error())
 		}
 
-		return c.Write(map[string]interface{}{
-			"response": permCreated,
-		})
+		return c.Write(permCreated)
 	}
 }
 
@@ -69,8 +65,6 @@ func (server *Server) ListRoles() routing.Handler {
 		}
 
 		// responses.JSON(w, http.StatusOK, vehicles)
-		return c.Write(map[string]interface{}{
-			"response": roles,
-		})
+		return c.Write(roles)
 	}
 }

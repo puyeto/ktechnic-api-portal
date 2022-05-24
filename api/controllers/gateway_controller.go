@@ -70,9 +70,7 @@ func (server *Server) GetGatewayHandler() routing.Handler {
 			return errors.NoContentFound(err.Error())
 		}
 
-		return c.Write(map[string]interface{}{
-			"response": gatewayReceived,
-		})
+		return c.Write(gatewayReceived)
 	}
 }
 
@@ -94,9 +92,7 @@ func (server *Server) UpdateGatewayHandler() routing.Handler {
 			return errors.InternalServerError(err.Error())
 		}
 
-		return c.Write(map[string]interface{}{
-			"response": gatewayUpdated,
-		})
+		return c.Write(gatewayUpdated)
 	}
 }
 
