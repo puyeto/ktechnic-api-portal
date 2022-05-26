@@ -113,8 +113,23 @@ func (u *User) Validate(action string) error {
 	}
 }
 
+// Count Users ...
+func (u *User) CountUsers(db *gorm.DB, roleid uint32) int {
+	var count int
+	query := db.Debug().Model(u)
+
+	if roleid == 1002 {
+		query = query.Where("company_id = ?", u.CompanyID)
+	} else if roleid > 1002 {
+		query = query.Where("added_by = ?", u.UpdatedBy)
+	}
+
+	query.Count(&count)
+	return count
+}
+
 // ListUsers Get all users...
-func (u *User) ListUsers(db *gorm.DB, roleid uint32) (*[]User, error) {
+func (u *User) ListUsers(db *gorm.DB, roleid uint32, offset, limit int) (*[]User, error) {
 	var err error
 	users := []User{}
 
@@ -126,33 +141,15 @@ func (u *User) ListUsers(db *gorm.DB, roleid uint32) (*[]User, error) {
 		query = query.Where("added_by = ?", u.UpdatedBy)
 	}
 
-	if err = query.Limit(100).Joins("left join roles on roles.id = users.role_id").Order("users.id ASC").Find(&users).Error; err != nil {
+	if err = query.Offset(offset).Limit(limit).Joins("left join roles on roles.id = users.role_id").Order("users.id ASC").Find(&users).Error; err != nil {
 		return &users, err
 	}
 
 	if len(users) > 0 {
 		for i := range users {
-			db.Debug().Model(&Companies{}).Where("id = ?", users[i].CompanyID).Take(&users[i].Company)
+			db.Debug().Table("companies").Model(&Companies{}).Where("id = ?", users[i].CompanyID).Take(&users[i].Company)
 		}
 	}
-	return &users, err
-}
-
-// FindAllDrivers Get all drivers from users...
-func (u *User) FindAllDrivers(db *gorm.DB) (*[]User, error) {
-	var err error
-	users := []User{}
-	err = db.Debug().Select("users.*, role_name").Where("role_id = ?", "1005").Limit(100).Joins("left join roles on roles.id = users.role_id").Find(&users).Error
-	if err != nil {
-		return &users, err
-	}
-
-	if len(users) > 0 {
-		for i := range users {
-			db.Debug().Model(&Companies{}).Where("id = ?", users[i].CompanyID).Take(&users[i].Company)
-		}
-	}
-
 	return &users, err
 }
 

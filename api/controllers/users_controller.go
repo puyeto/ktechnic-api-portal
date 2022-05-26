@@ -41,9 +41,30 @@ func (server *Server) CreateUserController() routing.Handler {
 	}
 }
 
+// Count Users ...
+func (server *Server) CountUsers() routing.Handler {
+	return func(c *routing.Context) error {
+		user := models.User{}
+		user.CompanyID = auth.ExtractCompanyID(c)
+		roleid := auth.ExtractRoleID(c)
+		user.UpdatedBy = auth.ExtractTokenID(c)
+
+		count := user.CountUsers(server.DB, roleid)
+		if count == 0 {
+			return errors.InternalServerError("No Data Found")
+		}
+
+		return c.Write(map[string]int{
+			"result": count,
+		})
+	}
+}
+
 // ListUsersController ...
 func (server *Server) ListUsersController() routing.Handler {
 	return func(c *routing.Context) error {
+		page := parseInt(c.Query("page"), 1)
+		perPage := parseInt(c.Query("per_page"), 0)
 		user := models.User{}
 
 		// get cid
@@ -51,24 +72,19 @@ func (server *Server) ListUsersController() routing.Handler {
 		roleid := auth.ExtractRoleID(c)
 		user.UpdatedBy = auth.ExtractTokenID(c)
 
-		users, err := user.ListUsers(server.DB, roleid)
+		count := user.CountUsers(server.DB, roleid)
+		if count == 0 {
+			return errors.InternalServerError("No Data Found")
+		}
+
+		paginatedList := getPaginatedListFromRequest(c, count, page, perPage)
+		users, err := user.ListUsers(server.DB, roleid, paginatedList.Offset(), paginatedList.Limit())
 		if err != nil {
 			return errors.NoContentFound(err.Error())
 		}
-		return c.Write(users)
-	}
-}
 
-// GetDriversController ...
-func (server *Server) GetDriversController() routing.Handler {
-	return func(c *routing.Context) error {
-		user := models.User{}
-
-		users, err := user.FindAllDrivers(server.DB)
-		if err != nil {
-			return errors.NoContentFound(err.Error())
-		}
-		return c.Write(users)
+		paginatedList.Items = users
+		return c.Write(paginatedList)
 	}
 }
 

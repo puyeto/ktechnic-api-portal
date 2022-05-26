@@ -30,7 +30,7 @@ func (s *Server) InitializeRoutes(rg *routing.RouteGroup) {
 	rg.Get("/users/<id>", s.GetUserController())
 	rg.Put("/users", s.UpdateUserController())
 	rg.Delete("/users/<id>", s.DeleteUserController())
-	rg.Get("/user/drivers", s.GetDriversController())
+	rg.Get("/user/count", s.CountUsers())
 
 	// Meters Routing
 	rg.Post("/meters", s.CreateMeter())
@@ -40,7 +40,7 @@ func (s *Server) InitializeRoutes(rg *routing.RouteGroup) {
 	rg.Put("/meters", s.UpdateMeter())
 	rg.Delete("/meters/<id>", s.DeleteMeter())
 	rg.Get("/meter/telemetry/<id>", s.GetMeterTelemetryController())
-	rg.Get("/meter/count", s.CountMeter())
+	rg.Get("/meter/count", s.CountMeters())
 
 	// Gateways Routing
 	rg.Post("/gateways", s.CreateGatewaysHandler())

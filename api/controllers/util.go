@@ -9,12 +9,14 @@ import (
 
 const (
 	DEFAULT_PAGE_SIZE int = 100
-	MAX_PAGE_SIZE     int = 100000
+	MAX_PAGE_SIZE     int = 1000
 )
 
-func getPaginatedListFromRequest(c *routing.Context, count int) *app.PaginatedList {
-	page := parseInt(c.Query("page"), 1)
-	perPage := parseInt(c.Query("per_page"), DEFAULT_PAGE_SIZE)
+func getPaginatedListFromRequest(c *routing.Context, count, page, perPage int) *app.PaginatedList {
+	if perPage == 0 {
+		perPage = DEFAULT_PAGE_SIZE
+	}
+
 	if perPage == -1 {
 		perPage = count
 	}

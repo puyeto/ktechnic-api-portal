@@ -84,14 +84,14 @@ func (m *Meter) SaveMeter(db *gorm.DB) (*Meter, error) {
 	return m, nil
 }
 
-// ListAllMeters ...
-func CountMeter(db *gorm.DB, roleid, companyid, addedby uint32) int64 {
-	var count int64
-	query := db.Debug().Model(&Meter{})
+// Count Meters ...
+func (m *Meter) CountMeters(db *gorm.DB, roleid uint32) int {
+	var count int
+	query := db.Debug().Model(m)
 	if roleid == 1002 {
-		query = query.Where("company_id = ?", companyid)
+		query = query.Where("company_id = ?", m.CompanyID)
 	} else if roleid > 1002 {
-		query = query.Where("added_by = ?", roleid)
+		query = query.Where("added_by = ?", m.AddedBy)
 	}
 
 	query.Count(&count)
@@ -99,7 +99,7 @@ func CountMeter(db *gorm.DB, roleid, companyid, addedby uint32) int64 {
 }
 
 // ListAllMeters ...
-func (m *Meter) ListAllMeters(db *gorm.DB, roleid uint32) (*[]Meter, error) {
+func (m *Meter) ListAllMeters(db *gorm.DB, roleid uint32, offset, limit int) (*[]Meter, error) {
 	var err error
 	meters := []Meter{}
 	tx := db.Begin()
@@ -119,7 +119,7 @@ func (m *Meter) ListAllMeters(db *gorm.DB, roleid uint32) (*[]Meter, error) {
 		query = query.Where("added_by = ?", m.AddedBy)
 	}
 
-	err = query.Model(&Meter{}).Limit(100).Find(&meters).Error
+	err = query.Model(&Meter{}).Offset(offset).Limit(limit).Find(&meters).Error
 
 	if err != nil {
 		return &meters, err

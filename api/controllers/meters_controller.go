@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"fmt"
 	"strconv"
 
 	routing "github.com/go-ozzo/ozzo-routing/v2"
@@ -37,19 +36,20 @@ func (server *Server) CreateMeter() routing.Handler {
 	}
 }
 
-// Count Meter ...
-func (server *Server) CountMeter() routing.Handler {
+// Count Meters ...
+func (server *Server) CountMeters() routing.Handler {
 	return func(c *routing.Context) error {
-		companyid := auth.ExtractCompanyID(c)
-		addedby := auth.ExtractTokenID(c)
+		meter := models.Meter{}
+		meter.CompanyID = auth.ExtractCompanyID(c)
 		roleid := auth.ExtractRoleID(c)
-		fmt.Println(companyid)
-		count := models.CountMeter(server.DB, roleid, companyid, addedby)
+		meter.AddedBy = auth.ExtractTokenID(c)
+
+		count := meter.CountMeters(server.DB, roleid)
 		if count == 0 {
 			return errors.InternalServerError("No Data Found")
 		}
 
-		return c.Write(map[string]int64{
+		return c.Write(map[string]int{
 			"result": count,
 		})
 	}
@@ -58,19 +58,26 @@ func (server *Server) CountMeter() routing.Handler {
 // ListMeters ...
 func (server *Server) ListMeters() routing.Handler {
 	return func(c *routing.Context) error {
+		page := parseInt(c.Query("page"), 1)
+		perPage := parseInt(c.Query("per_page"), 0)
 		meter := models.Meter{}
-
 		meter.CompanyID = auth.ExtractCompanyID(c)
 		roleid := auth.ExtractRoleID(c)
 		meter.AddedBy = auth.ExtractTokenID(c)
-		meters, err := meter.ListAllMeters(server.DB, roleid)
-		fmt.Println(meter.CompanyID)
 
+		count := meter.CountMeters(server.DB, roleid)
+		if count == 0 {
+			return errors.InternalServerError("No Data Found")
+		}
+
+		paginatedList := getPaginatedListFromRequest(c, count, page, perPage)
+		meters, err := meter.ListAllMeters(server.DB, roleid, paginatedList.Offset(), paginatedList.Limit())
 		if err != nil {
 			return errors.InternalServerError(err.Error())
 		}
 
-		return c.Write(meters)
+		paginatedList.Items = meters
+		return c.Write(paginatedList)
 	}
 }
 
@@ -139,6 +146,8 @@ func (server *Server) DeleteMeter() routing.Handler {
 func (server *Server) GetMeterTelemetryController() routing.Handler {
 	return func(c *routing.Context) error {
 		order := c.Query("order_by", "desc")
+		page := parseInt(c.Query("page"), 1)
+		perPage := parseInt(c.Query("per_page"), 0)
 		filterfrom, err := strconv.Atoi(c.Query("filter_from", "0"))
 		if err != nil {
 			return errors.BadRequest(err.Error())
@@ -159,7 +168,7 @@ func (server *Server) GetMeterTelemetryController() routing.Handler {
 		var paginatedList *app.PaginatedList
 
 		if count > 0 {
-			paginatedList = getPaginatedListFromRequest(c, count)
+			paginatedList = getPaginatedListFromRequest(c, count, page, perPage)
 			meterReceived, err := meter.FindMeterTelemetryByID(app.MongoDB, uint64(mid), order, paginatedList.Offset(), paginatedList.Limit(), uint64(filterfrom), uint64(filterto))
 			if err != nil {
 				return errors.NoContentFound(err.Error())
