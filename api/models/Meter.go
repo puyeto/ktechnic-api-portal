@@ -85,6 +85,20 @@ func (m *Meter) SaveMeter(db *gorm.DB) (*Meter, error) {
 }
 
 // ListAllMeters ...
+func CountMeter(db *gorm.DB, roleid, companyid, addedby uint32) int64 {
+	var count int64
+	query := db.Debug().Model(&Meter{})
+	if roleid == 1002 {
+		query = query.Where("company_id = ?", companyid)
+	} else if roleid > 1002 {
+		query = query.Where("added_by = ?", roleid)
+	}
+
+	query.Count(&count)
+	return count
+}
+
+// ListAllMeters ...
 func (m *Meter) ListAllMeters(db *gorm.DB, roleid uint32) (*[]Meter, error) {
 	var err error
 	meters := []Meter{}

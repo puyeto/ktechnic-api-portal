@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"strconv"
 
 	routing "github.com/go-ozzo/ozzo-routing/v2"
@@ -36,6 +37,24 @@ func (server *Server) CreateMeter() routing.Handler {
 	}
 }
 
+// Count Meter ...
+func (server *Server) CountMeter() routing.Handler {
+	return func(c *routing.Context) error {
+		companyid := auth.ExtractCompanyID(c)
+		addedby := auth.ExtractTokenID(c)
+		roleid := auth.ExtractRoleID(c)
+		fmt.Println(companyid)
+		count := models.CountMeter(server.DB, roleid, companyid, addedby)
+		if count == 0 {
+			return errors.InternalServerError("No Data Found")
+		}
+
+		return c.Write(map[string]int64{
+			"result": count,
+		})
+	}
+}
+
 // ListMeters ...
 func (server *Server) ListMeters() routing.Handler {
 	return func(c *routing.Context) error {
@@ -45,6 +64,8 @@ func (server *Server) ListMeters() routing.Handler {
 		roleid := auth.ExtractRoleID(c)
 		meter.AddedBy = auth.ExtractTokenID(c)
 		meters, err := meter.ListAllMeters(server.DB, roleid)
+		fmt.Println(meter.CompanyID)
+
 		if err != nil {
 			return errors.InternalServerError(err.Error())
 		}
@@ -109,7 +130,7 @@ func (server *Server) DeleteMeter() routing.Handler {
 		}
 
 		return c.Write(map[string]interface{}{
-			"response": "success",
+			"result": "success",
 		})
 	}
 }

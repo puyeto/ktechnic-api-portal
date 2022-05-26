@@ -65,7 +65,7 @@ func (server *Server) DeletePricePlanHandler() routing.Handler {
 		}
 
 		return c.Write(map[string]interface{}{
-			"response": "success",
+			"result": "success",
 		})
 	}
 }
