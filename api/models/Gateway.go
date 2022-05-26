@@ -120,9 +120,7 @@ func (p *Gateway) FindGatewayByID(db *gorm.DB, pid uint64) (*Gateway, error) {
 		return p, err
 	}
 	if p.ID != 0 {
-		if err := db.Debug().Model(&User{}).Where("id = ?", p.CompanyID).Take(&p.Company).Error; err != nil {
-			return p, err
-		}
+		db.Debug().Table("companies").Model(&CompanyShortDetails{}).Where("id = ?", p.CompanyID).Take(&p.Company)
 	}
 	return p, nil
 }

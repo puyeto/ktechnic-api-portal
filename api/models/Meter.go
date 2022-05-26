@@ -133,9 +133,8 @@ func (p *Meter) FindMeterByID(db *gorm.DB, pid uint64) (*Meter, error) {
 		return p, err
 	}
 	if p.ID != 0 {
-		if err := db.Debug().Model(&User{}).Where("id = ?", p.CompanyID).Take(&p.Company).Error; err != nil {
-			return p, err
-		}
+		db.Debug().Table("companies").Model(&CompanyShortDetails{}).Where("id = ?", p.CompanyID).Take(&p.Company)
+		db.Debug().Model(&Gateway{}).Where("id = ?", p.GatewayID).Take(&p.Gateway)
 	}
 	return p, nil
 }
