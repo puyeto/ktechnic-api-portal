@@ -20,7 +20,7 @@ type Meter struct {
 	ID               uint32              `gorm:"primary_key;auto_increment" json:"id"`
 	CompanyID        uint32              `gorm:"not null;" json:"company_id"`
 	GatewayID        uint32              `gorm:"not null;" json:"gateway_id"`
-	PricePlanID      uint32              `json:"prica_plan_id" gorm:"not null"`
+	PricePlanID      uint32              `json:"price_plan_id" gorm:"not null"`
 	MeterName        string              `gorm:"not null" json:"meter_name"`
 	MeterNumber      string              `gorm:"not null" json:"meter_number"`
 	Status           int8                `gorm:"not null;" json:"status" db:"status"`
@@ -60,28 +60,27 @@ func (p *Meter) Validate() error {
 
 // SaveMeter ...
 func (m *Meter) SaveMeter(db *gorm.DB) (*Meter, error) {
-	var err error
-	tx := db.Begin()
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-	if err := tx.Error; err != nil {
+	exist, err := m.IsMeterExist(db)
+	if err != nil {
 		return &Meter{}, err
 	}
-
-	if err = tx.Debug().Model(&Meter{}).Create(&m).Error; err != nil {
-		tx.Rollback()
-		return &Meter{}, err
+	if exist == true {
+		return m, errors.New("Meter already exist")
 	}
 
-	if err := tx.Commit().Error; err != nil {
-		tx.Rollback()
+	if err := db.Debug().Model(&Meter{}).Create(&m).Error; err != nil {
 		return &Meter{}, err
 	}
 
 	return m, nil
+}
+
+func (m *Meter) IsMeterExist(db *gorm.DB) (bool, error) {
+	var result struct {
+		Found bool
+	}
+	err := db.Raw("SELECT EXISTS(SELECT 1 FROM meters WHERE meter_number = ?) AS found", m.MeterNumber).Scan(&result).Error
+	return result.Found, err
 }
 
 // Count Meters ...
@@ -181,35 +180,16 @@ func (p *Meter) UpdateAMeter(db *gorm.DB) (*Meter, error) {
 }
 
 // DeleteAMeter ...
-func (p *Meter) DeleteAMeter(db *gorm.DB, vid uint32) (int64, error) {
-	tx := db.Begin()
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-	if err := tx.Error; err != nil {
-		return 0, err
-	}
+func (p *Meter) DeleteAMeter(db *gorm.DB, vid uint32) error {
 
-	err := tx.Debug().Model(&Meter{}).Where("id = ?", vid).Take(&p).Error
-	if err != nil {
-		return 0, err
-	}
-
-	if err = tx.Debug().Model(&Meter{}).Where("id = ?", vid).Delete(&Meter{}).Error; err != nil {
+	if err := db.Debug().Model(&Meter{}).Where("id = ?", vid).Delete(&Meter{}).Error; err != nil {
 		if gorm.IsRecordNotFoundError(db.Error) {
-			return 0, errors.New("Meter not found")
+			return errors.New("Meter not found")
 		}
-		return 0, db.Error
+		return db.Error
 	}
 
-	if err = tx.Commit().Error; err != nil {
-		tx.Rollback()
-		return 0, err
-	}
-
-	return db.RowsAffected, nil
+	return nil
 }
 
 // CountMeterTelemetryByID ...

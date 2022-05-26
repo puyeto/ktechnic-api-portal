@@ -78,7 +78,6 @@ func (p *Companies) SaveCompanyDetails(db *gorm.DB) (*Companies, error) {
 	}
 
 	if err = tx.Commit().Error; err != nil {
-		tx.Rollback()
 		return &Companies{}, err
 	}
 

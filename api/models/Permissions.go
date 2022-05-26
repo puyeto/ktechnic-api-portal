@@ -80,7 +80,6 @@ func (p *Permissions) Save(db *gorm.DB) (*Permissions, error) {
 	}
 
 	if err = tx.Commit().Error; err != nil {
-		tx.Rollback()
 		return &Permissions{}, err
 	}
 

@@ -2,7 +2,6 @@ package models
 
 import (
 	"errors"
-	"fmt"
 	"html"
 	"strconv"
 	"strings"
@@ -178,28 +177,40 @@ func (u *User) SaveUser(db *gorm.DB) (*User, error) {
 		return u, err
 	}
 
-	err := tx.Debug().Create(&u).Error
+	exist, err := u.IsUserExist(db)
 	if err != nil {
-		tx.Rollback()
+		return u, err
+	}
+	if exist == true {
+		return u, errors.New("User already exist")
+	}
+
+	if err := tx.Debug().Create(&u).Error; err != nil {
 		return u, err
 	}
 
 	if u.ID > 0 {
 		u.Permissions["added_by"] = int(u.UpdatedBy)
 		query := u.structureQuery()
-		fmt.Println(query)
+		// fmt.Println(query)
 		if err := tx.Debug().Exec(query).Error; err != nil {
-			tx.Rollback()
 			return u, err
 		}
 	}
 
 	if err := tx.Commit().Error; err != nil {
-		tx.Rollback()
 		return u, err
 	}
 
 	return u, nil
+}
+
+func (u *User) IsUserExist(db *gorm.DB) (bool, error) {
+	var result struct {
+		Found bool
+	}
+	err := db.Raw("SELECT EXISTS(SELECT 1 FROM users WHERE email = ?) AS found", u.Email).Scan(&result).Error
+	return result.Found, err
 }
 
 func (u *User) structureQuery() string {
@@ -245,24 +256,20 @@ func (u *User) UpdateAUser(db *gorm.DB) (*User, error) {
 			"updated_by": u.UpdatedBy,
 		},
 	).Error; err != nil {
-		tx.Rollback()
 		return &User{}, err
 	}
 	// This is the display the updated user
 	err := db.Debug().Model(&User{}).Where("id = ?", u.ID).Take(&u).Error
 	if err != nil {
-		tx.Rollback()
 		return &User{}, err
 	}
 
 	query := u.structureUpdateQuery()
 	if err := tx.Debug().Exec(query).Error; err != nil {
-		tx.Rollback()
 		return &User{}, err
 	}
 
 	if err := tx.Commit().Error; err != nil {
-		tx.Rollback()
 		return &User{}, err
 	}
 

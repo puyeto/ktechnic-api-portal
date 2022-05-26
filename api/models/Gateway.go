@@ -40,38 +40,10 @@ func (p *Gateway) Validate() error {
 
 // SaveGateway ...
 func (p *Gateway) SaveGateway(db *gorm.DB) (*Gateway, error) {
-	var err error
-	tx := db.Begin()
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-	if err := tx.Error; err != nil {
+	if err := db.Debug().Model(&Gateway{}).Create(&p).Error; err != nil {
 		return &Gateway{}, err
 	}
-
-	if err = tx.Debug().Model(&Gateway{}).Create(&p).Error; err != nil {
-		tx.Rollback()
-		return &Gateway{}, err
-	}
-	if p.ID > 0 {
-		if err = tx.Debug().Model(&User{}).Where("id = ?", p.AddedBy).UpdateColumn("gateway_count", gorm.Expr("gateway_count + ?", 1)).Error; err != nil {
-			tx.Rollback()
-			return &Gateway{}, err
-		}
-
-		if err = tx.Debug().Model(&Companies{}).Where("id = ?", p.CompanyID).UpdateColumn("gateway_count", gorm.Expr("gateway_count + ?", 1)).Error; err != nil {
-			tx.Rollback()
-			return &Gateway{}, err
-		}
-	}
-
-	if err := tx.Commit().Error; err != nil {
-		tx.Rollback()
-		return &Gateway{}, err
-	}
-
+	
 	return p, nil
 }
 

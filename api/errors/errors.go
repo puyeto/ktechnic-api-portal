@@ -25,22 +25,22 @@ func InternalServerError(err string) *APIError {
 
 // NotFound creates a new API error representing a resource-not-found error (HTTP 404)
 func NotFound(resource string) *APIError {
-	return NewAPIError(http.StatusNotFound, "NOT_FOUND", Params{"resource": resource})
+	return NewAPIError(http.StatusNotFound, "NOT_FOUND : "+resource, Params{"resource": resource})
 }
 
 // Unauthorized creates a new API error representing an authentication failure (HTTP 401)
 func Unauthorized(err string) *APIError {
-	return NewAPIError(http.StatusUnauthorized, "UNAUTHORIZED", Params{"error": err})
+	return NewAPIError(http.StatusUnauthorized, "UNAUTHORIZED : "+err, Params{"error": err})
 }
 
 // BadRequest creates a new API error representing a bad request (HTTP 400)
 func BadRequest(err string) *APIError {
-	return NewAPIError(http.StatusBadRequest, "BADREQUEST", Params{"error": err})
+	return NewAPIError(http.StatusBadRequest, "BADREQUEST : "+err, Params{"error": err})
 }
 
 // ValidationRequest ...
 func ValidationRequest(err string) *APIError {
-	return NewAPIError(http.StatusBadRequest, "VALIDATION_FAILED", Params{"error": err})
+	return NewAPIError(http.StatusBadRequest, "VALIDATION_FAILED : "+err, Params{"error": err})
 }
 
 // NotFound creates a new API error representing a resource-not-found error (HTTP 204)

@@ -131,8 +131,7 @@ func (server *Server) DeleteMeter() routing.Handler {
 			return errors.BadRequest(err.Error())
 		}
 
-		_, err = meter.DeleteAMeter(server.DB, uint32(vid))
-		if err != nil {
+		if err := meter.DeleteAMeter(server.DB, uint32(vid)); err != nil {
 			return errors.InternalServerError(err.Error())
 		}
 
