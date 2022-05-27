@@ -65,13 +65,19 @@ func (server *Server) ListGatewaysHandler() routing.Handler {
 		roleid := auth.ExtractRoleID(c)
 		gateway.AddedBy = auth.ExtractTokenID(c)
 
-		gateways, err := gateway.ListAllGateways(server.DB, roleid, uint32(page), uint32(perPage))
+		count := gateway.CountGateways(server.DB, roleid)
+		if count == 0 {
+			return errors.InternalServerError("No Data Found")
+		}
+
+		paginatedList := getPaginatedListFromRequest(c, count, page, perPage)
+		gateways, err := gateway.ListAllGateways(server.DB, roleid, paginatedList.Offset(), paginatedList.Limit())
 		if err != nil {
 			return errors.InternalServerError(err.Error())
 		}
 
-		// responses.JSON(w, http.StatusOK, gateways)
-		return c.Write(gateways)
+		paginatedList.Items = gateways
+		return c.Write(paginatedList)
 	}
 }
 

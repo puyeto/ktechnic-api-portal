@@ -62,7 +62,7 @@ func (g *Gateway) CountGateways(db *gorm.DB, roleid uint32) int {
 }
 
 // ListAllGateways ...
-func (g *Gateway) ListAllGateways(db *gorm.DB, roleid, offset, limit uint32) (*[]Gateway, error) {
+func (g *Gateway) ListAllGateways(db *gorm.DB, roleid uint32, offset, limit int) (*[]Gateway, error) {
 	var err error
 	gateways := []Gateway{}
 	tx := db.Begin()
@@ -90,7 +90,7 @@ func (g *Gateway) ListAllGateways(db *gorm.DB, roleid, offset, limit uint32) (*[
 
 	if len(gateways) > 0 {
 		for i := range gateways {
-			tx.Debug().Model(&Companies{}).Where("id = ?", gateways[i].CompanyID).Take(&gateways[i].Company)
+			tx.Debug().Table("companies").Model(&Companies{}).Where("id = ?", gateways[i].CompanyID).Take(&gateways[i].Company)
 		}
 	}
 
