@@ -35,14 +35,37 @@ func (server *Server) CreateGatewaysHandler() routing.Handler {
 	}
 }
 
+// Count Gateways ...
+func (server *Server) CountGateways() routing.Handler {
+	return func(c *routing.Context) error {
+		gate := models.Gateway{}
+		gate.CompanyID = auth.ExtractCompanyID(c)
+		roleid := auth.ExtractRoleID(c)
+		gate.AddedBy = auth.ExtractTokenID(c)
+
+		count := gate.CountGateways(server.DB, roleid)
+		if count == 0 {
+			return errors.InternalServerError("No Data Found")
+		}
+
+		return c.Write(map[string]int{
+			"result": count,
+		})
+	}
+}
+
 // ListGatewaysHandler ...
 func (server *Server) ListGatewaysHandler() routing.Handler {
 	return func(c *routing.Context) error {
+		page := parseInt(c.Query("page"), 1)
+		perPage := parseInt(c.Query("per_page"), 0)
 		gateway := models.Gateway{}
 
 		gateway.CompanyID = auth.ExtractCompanyID(c)
+		roleid := auth.ExtractRoleID(c)
+		gateway.AddedBy = auth.ExtractTokenID(c)
 
-		gateways, err := gateway.ListAllGateways(server.DB)
+		gateways, err := gateway.ListAllGateways(server.DB, roleid, uint32(page), uint32(perPage))
 		if err != nil {
 			return errors.InternalServerError(err.Error())
 		}

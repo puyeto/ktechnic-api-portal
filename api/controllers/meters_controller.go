@@ -61,6 +61,7 @@ func (server *Server) ListMeters() routing.Handler {
 		page := parseInt(c.Query("page"), 1)
 		perPage := parseInt(c.Query("per_page"), 0)
 		meter := models.Meter{}
+
 		meter.CompanyID = auth.ExtractCompanyID(c)
 		roleid := auth.ExtractRoleID(c)
 		meter.AddedBy = auth.ExtractTokenID(c)

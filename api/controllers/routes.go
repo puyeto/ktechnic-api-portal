@@ -18,7 +18,7 @@ func (s *Server) InitializeRoutes(rg *routing.RouteGroup) {
 
 	rg.Use(auth.JWT(os.Getenv("API_SECRET")))
 
-	rg.Get("/dashboard-stats", s.DashboardStatsHandler())
+	rg.Get("/user-stats", s.UserStatsHandler())
 
 	// Companies Route
 	rg.Post("/companies", s.CreateCompanies())

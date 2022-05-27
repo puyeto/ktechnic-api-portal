@@ -22,16 +22,16 @@ type Gateway struct {
 }
 
 // Prepare ...
-func (p *Gateway) Prepare() {
-	p.CreatedAt = time.Now()
-	p.UpdatedAt = time.Now()
-	p.Status = 1
+func (g *Gateway) Prepare() {
+	g.CreatedAt = time.Now()
+	g.UpdatedAt = time.Now()
+	g.Status = 1
 }
 
 // Validate ...
-func (p *Gateway) Validate() error {
+func (g *Gateway) Validate() error {
 
-	if p.GatewayName == "" {
+	if g.GatewayName == "" {
 		return errors.New("Gateway Name is Required")
 	}
 
@@ -39,16 +39,30 @@ func (p *Gateway) Validate() error {
 }
 
 // SaveGateway ...
-func (p *Gateway) SaveGateway(db *gorm.DB) (*Gateway, error) {
-	if err := db.Debug().Model(&Gateway{}).Create(&p).Error; err != nil {
+func (g *Gateway) SaveGateway(db *gorm.DB) (*Gateway, error) {
+	if err := db.Debug().Model(&Gateway{}).Create(&g).Error; err != nil {
 		return &Gateway{}, err
 	}
-	
-	return p, nil
+
+	return g, nil
+}
+
+// Count Meters ...
+func (g *Gateway) CountGateways(db *gorm.DB, roleid uint32) int {
+	var count int
+	query := db.Debug().Model(g)
+	if roleid == 1002 {
+		query = query.Where("company_id = ?", g.CompanyID)
+	} else if roleid > 1002 {
+		query = query.Where("added_by = ?", g.AddedBy)
+	}
+
+	query.Count(&count)
+	return count
 }
 
 // ListAllGateways ...
-func (p *Gateway) ListAllGateways(db *gorm.DB) (*[]Gateway, error) {
+func (g *Gateway) ListAllGateways(db *gorm.DB, roleid, offset, limit uint32) (*[]Gateway, error) {
 	var err error
 	gateways := []Gateway{}
 	tx := db.Begin()
@@ -61,11 +75,14 @@ func (p *Gateway) ListAllGateways(db *gorm.DB) (*[]Gateway, error) {
 		return &gateways, err
 	}
 
-	if p.CompanyID > 0 {
-		err = tx.Debug().Where("company_id = ?", p.CompanyID).Model(&Gateway{}).Limit(100).Find(&gateways).Error
-	} else {
-		err = tx.Debug().Model(&Gateway{}).Limit(100).Find(&gateways).Error
+	query := tx.Debug().Model(g)
+	if roleid == 1002 {
+		query = query.Where("company_id = ?", g.CompanyID)
+	} else if roleid > 1002 {
+		query = query.Where("added_by = ?", g.AddedBy)
 	}
+
+	err = query.Offset(offset).Limit(limit).Find(&gateways).Error
 
 	if err != nil {
 		return &gateways, err
@@ -85,45 +102,45 @@ func (p *Gateway) ListAllGateways(db *gorm.DB) (*[]Gateway, error) {
 }
 
 // FindGatewayByID ...
-func (p *Gateway) FindGatewayByID(db *gorm.DB, pid uint64) (*Gateway, error) {
+func (g *Gateway) FindGatewayByID(db *gorm.DB, pid uint64) (*Gateway, error) {
 	var err error
-	err = db.Debug().Model(&Gateway{}).Where("id = ?", pid).Take(&p).Error
+	err = db.Debug().Model(&Gateway{}).Where("id = ?", pid).Take(&g).Error
 	if err != nil {
-		return p, err
+		return g, err
 	}
-	if p.ID != 0 {
-		db.Debug().Table("companies").Model(&CompanyShortDetails{}).Where("id = ?", p.CompanyID).Take(&p.Company)
+	if g.ID != 0 {
+		db.Debug().Table("companies").Model(&CompanyShortDetails{}).Where("id = ?", g.CompanyID).Take(&g.Company)
 	}
-	return p, nil
+	return g, nil
 }
 
 // UpdateAGateway ...
-func (p *Gateway) UpdateAGateway(db *gorm.DB) (*Gateway, error) {
+func (g *Gateway) UpdateAGateway(db *gorm.DB) (*Gateway, error) {
 
 	var err error
-	db.Debug().Model(&Gateway{}).Where("id = ?", p.ID).Take(&Gateway{}).UpdateColumns(
+	db.Debug().Model(&Gateway{}).Where("id = ?", g.ID).Take(&Gateway{}).UpdateColumns(
 		map[string]interface{}{
-			"gateway_name":        p.GatewayName,
-			"section_id":          p.SectionID,
-			"gateway_description": p.GatewayDescription,
-			"updated_at":          p.UpdatedAt,
+			"gateway_name":        g.GatewayName,
+			"section_id":          g.SectionID,
+			"gateway_description": g.GatewayDescription,
+			"updated_at":          g.UpdatedAt,
 		},
 	)
-	err = db.Debug().Model(&Gateway{}).Where("id = ?", p.ID).Take(&p).Error
+	err = db.Debug().Model(&Gateway{}).Where("id = ?", g.ID).Take(&g).Error
 	if err != nil {
 		return &Gateway{}, err
 	}
-	if p.ID != 0 {
-		err = db.Debug().Model(&User{}).Where("id = ?", p.CompanyID).Take(&p.Company).Error
+	if g.ID != 0 {
+		err = db.Debug().Model(&User{}).Where("id = ?", g.CompanyID).Take(&g.Company).Error
 		if err != nil {
 			return &Gateway{}, err
 		}
 	}
-	return p, nil
+	return g, nil
 }
 
 // DeleteAGateway ...
-func (p *Gateway) DeleteAGateway(db *gorm.DB, vid uint32) error {
+func (g *Gateway) DeleteAGateway(db *gorm.DB, vid uint32) error {
 	if err := db.Debug().Model(&Gateway{}).Where("id = ?", vid).Delete(&Gateway{}).Error; err != nil {
 		if gorm.IsRecordNotFoundError(db.Error) {
 			return errors.New("Gateway not found")
