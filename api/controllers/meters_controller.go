@@ -85,13 +85,14 @@ func (server *Server) ListMeters() routing.Handler {
 // GetMeter ...
 func (server *Server) GetMeter() routing.Handler {
 	return func(c *routing.Context) error {
-		vid, err := strconv.Atoi(c.Param("id"))
+		mid, err := strconv.Atoi(c.Param("id"))
 		if err != nil {
 			return errors.BadRequest(err.Error())
 		}
 
 		meter := models.Meter{}
-		meterReceived, err := meter.FindMeterByID(server.DB, uint64(vid))
+		meter.ID = uint32(mid)
+		meterReceived, err := meter.FindMeterByID(server.DB)
 		if err != nil {
 			return errors.NoContentFound(err.Error())
 		}

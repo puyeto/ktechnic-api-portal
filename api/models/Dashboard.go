@@ -7,13 +7,12 @@ type UserStats struct {
 	UserCount    int `json:"user_count"`
 }
 
-// // GetUserDashboardStats ...
-// func (d *UserStats) GetUserDashboardStats(db *gorm.DB) *UserStats {
-// 	meter := models.Meter{}
-
-// 	// db.Debug().Model(&Meter{}).Where("id = ?", pid).Take(&p)
-// 	db.Table("meters").Where("company_id = ?", d.CompanyID).Count(&d.MeterCount)
-// 	db.Table("gateways").Where("company_id = ?", d.CompanyID).Count(&d.GatewayCount)
-// 	db.Table("users").Where("company_id = ?", d.CompanyID).Count(&d.UserCount)
-// 	return d
-// }
+type MaterStats struct {
+	MeterNumber               string  `json:"meter_number"`
+	MeterUnitsBalance         int     `json:"meter_units_balance"`
+	MeterWalletBalance        float32 `json:"meter_wallet_balance"`
+	MeterConsumptionThisWeek  float32 `json:"meter_consumption_this_week"`
+	MeterConsumptionThisMonth float32 `json:"meter_consumption_this_month"`
+	MeterLastSeen             string  `json:"meter_last_seen"`
+	MeterDetails              *Meter  `json:"meter_details"`
+}

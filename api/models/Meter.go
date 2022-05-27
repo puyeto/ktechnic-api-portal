@@ -33,25 +33,25 @@ type Meter struct {
 }
 
 // Prepare ...
-func (p *Meter) Prepare() {
-	p.CreatedAt = time.Now()
-	p.UpdatedAt = time.Now()
-	p.Status = 1
+func (m *Meter) Prepare() {
+	m.CreatedAt = time.Now()
+	m.UpdatedAt = time.Now()
+	m.Status = 1
 }
 
 // Validate ...
-func (p *Meter) Validate() error {
+func (m *Meter) Validate() error {
 
-	if p.MeterName == "" {
+	if m.MeterName == "" {
 		return errors.New("Meter Name is Required")
 	}
-	if p.MeterNumber == "" {
+	if m.MeterNumber == "" {
 		return errors.New("Meter Serial is Required")
 	}
-	if p.GatewayID == 0 {
+	if m.GatewayID == 0 {
 		return errors.New("Gateway is Required")
 	}
-	if p.PricePlanID == 0 {
+	if m.PricePlanID == 0 {
 		return errors.New("Price Plan is Required")
 	}
 
@@ -62,14 +62,14 @@ func (p *Meter) Validate() error {
 func (m *Meter) SaveMeter(db *gorm.DB) (*Meter, error) {
 	exist, err := m.IsMeterExist(db)
 	if err != nil {
-		return &Meter{}, err
+		return m, err
 	}
 	if exist == true {
 		return m, errors.New("Meter already exist")
 	}
 
-	if err := db.Debug().Model(&Meter{}).Create(&m).Error; err != nil {
-		return &Meter{}, err
+	if err := db.Debug().Model(m).Create(&m).Error; err != nil {
+		return m, err
 	}
 
 	return m, nil
@@ -118,7 +118,7 @@ func (m *Meter) ListAllMeters(db *gorm.DB, roleid uint32, offset, limit int) (*[
 		query = query.Where("added_by = ?", m.AddedBy)
 	}
 
-	err = query.Model(&Meter{}).Offset(offset).Limit(limit).Find(&meters).Error
+	err = query.Model(m).Offset(offset).Limit(limit).Find(&meters).Error
 
 	if err != nil {
 		return &meters, err
@@ -139,50 +139,50 @@ func (m *Meter) ListAllMeters(db *gorm.DB, roleid uint32, offset, limit int) (*[
 }
 
 // FindMeterByID ...
-func (p *Meter) FindMeterByID(db *gorm.DB, pid uint64) (*Meter, error) {
+func (m *Meter) FindMeterByID(db *gorm.DB) (*Meter, error) {
 	var err error
-	err = db.Debug().Model(&Meter{}).Where("id = ?", pid).Take(&p).Error
+	err = db.Debug().Model(m).Where("id = ?", m.ID).Take(&m).Error
 	if err != nil {
-		return p, err
+		return m, err
 	}
-	if p.ID != 0 {
-		db.Debug().Table("companies").Model(&CompanyShortDetails{}).Where("id = ?", p.CompanyID).Take(&p.Company)
-		db.Debug().Model(&Gateway{}).Where("id = ?", p.GatewayID).Take(&p.Gateway)
+	if m.ID != 0 {
+		db.Debug().Table("companies").Model(&CompanyShortDetails{}).Where("id = ?", m.CompanyID).Take(&m.Company)
+		db.Debug().Model(&Gateway{}).Where("id = ?", m.GatewayID).Take(&m.Gateway)
 	}
-	return p, nil
+	return m, nil
 }
 
 // UpdateAMeter ...
-func (p *Meter) UpdateAMeter(db *gorm.DB) (*Meter, error) {
+func (m *Meter) UpdateAMeter(db *gorm.DB) (*Meter, error) {
 
 	var err error
-	db.Debug().Model(&Meter{}).Where("id = ?", p.ID).Take(&Meter{}).UpdateColumns(
+	db.Debug().Model(m).Where("id = ?", m.ID).Take(m).UpdateColumns(
 		map[string]interface{}{
-			"gateway_id":        p.GatewayID,
-			"price_plan_id":     p.PricePlanID,
-			"meter_name":        p.MeterName,
-			"meter_number":      p.MeterNumber,
-			"meter_description": p.MeterDescription,
-			"updated_at":        p.UpdatedAt,
+			"gateway_id":        m.GatewayID,
+			"price_plan_id":     m.PricePlanID,
+			"meter_name":        m.MeterName,
+			"meter_number":      m.MeterNumber,
+			"meter_description": m.MeterDescription,
+			"updated_at":        m.UpdatedAt,
 		},
 	)
-	err = db.Debug().Model(&Meter{}).Where("id = ?", p.ID).Take(&p).Error
+	err = db.Debug().Model(m).Where("id = ?", m.ID).Take(&m).Error
 	if err != nil {
-		return &Meter{}, err
+		return m, err
 	}
-	if p.ID != 0 {
-		err = db.Debug().Model(&User{}).Where("id = ?", p.CompanyID).Take(&p.Company).Error
+	if m.ID != 0 {
+		err = db.Debug().Model(&User{}).Where("id = ?", m.CompanyID).Take(&m.Company).Error
 		if err != nil {
-			return &Meter{}, err
+			return m, err
 		}
 	}
-	return p, nil
+	return m, nil
 }
 
 // DeleteAMeter ...
-func (p *Meter) DeleteAMeter(db *gorm.DB, vid uint32) error {
+func (m *Meter) DeleteAMeter(db *gorm.DB, vid uint32) error {
 
-	if err := db.Debug().Model(&Meter{}).Where("id = ?", vid).Delete(&Meter{}).Error; err != nil {
+	if err := db.Debug().Model(m).Where("id = ?", vid).Delete(m).Error; err != nil {
 		if gorm.IsRecordNotFoundError(db.Error) {
 			return errors.New("Meter not found")
 		}
@@ -193,7 +193,7 @@ func (p *Meter) DeleteAMeter(db *gorm.DB, vid uint32) error {
 }
 
 // CountMeterTelemetryByID ...
-func (p *Meter) CountMeterTelemetryByID(db *mongo.Database, mid uint64, filterfrom, filterto uint64) int {
+func (m *Meter) CountMeterTelemetryByID(db *mongo.Database, mid uint64, filterfrom, filterto uint64) int {
 	filter := bson.D{}
 	if filterfrom > 0 && filterto > 0 {
 		filter = bson.D{{"datetimestamp", bson.D{{"$gte", filterfrom}}}, {"datetimestamp", bson.D{{"$lte", filterto}}}}
@@ -206,7 +206,7 @@ func (p *Meter) CountMeterTelemetryByID(db *mongo.Database, mid uint64, filterfr
 }
 
 // FindMeterTelemetryByID ...
-func (p *Meter) FindMeterTelemetryByID(db *mongo.Database, mid uint64, order string, offset, limit int, filterfrom, filterto uint64) (*[]DeviceData, error) {
+func (m *Meter) FindMeterTelemetryByID(db *mongo.Database, mid uint64, order string, offset, limit int, filterfrom, filterto uint64) (*[]DeviceData, error) {
 	var Telemetry []DeviceData
 
 	// Get collection

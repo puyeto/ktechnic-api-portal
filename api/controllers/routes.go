@@ -19,6 +19,7 @@ func (s *Server) InitializeRoutes(rg *routing.RouteGroup) {
 	rg.Use(auth.JWT(os.Getenv("API_SECRET")))
 
 	rg.Get("/user-stats", s.UserStatsHandler())
+	rg.Get("/meter-stats", s.MeterStatsHandler())
 
 	// Companies Route
 	rg.Post("/companies", s.CreateCompanies())
@@ -38,7 +39,7 @@ func (s *Server) InitializeRoutes(rg *routing.RouteGroup) {
 	rg.Get("/meter/get/<id>", s.GetMeter())
 	// rg.Get("/meter", s.GetVMeterDetailsByRegNoController())
 	rg.Put("/meters", s.UpdateMeter())
-	rg.Delete("/meters/<id>", s.DeleteMeter())
+	rg.Delete("/meter/<id>", s.DeleteMeter())
 	rg.Get("/meter/telemetry/<id>", s.GetMeterTelemetryController())
 	rg.Get("/meter/count", s.CountMeters())
 
@@ -48,6 +49,7 @@ func (s *Server) InitializeRoutes(rg *routing.RouteGroup) {
 	rg.Get("/gateway/get/<id>", s.GetGatewayHandler())
 	rg.Put("/gateways", s.UpdateGatewayHandler())
 	rg.Delete("/gateway/<id>", s.DeleteGatewayHandler())
+	rg.Get("/gateway/count", s.CountGateways())
 
 	// Settings Route
 	rg.Post("/settings/permissions", s.CreatePermissions())
