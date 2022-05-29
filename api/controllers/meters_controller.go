@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"strconv"
+	"time"
 
 	routing "github.com/go-ozzo/ozzo-routing/v2"
 	"github.com/ktechnics/ktechnics-api/api/app"
@@ -90,7 +91,7 @@ func (server *Server) GetMeter() routing.Handler {
 			return errors.BadRequest(err.Error())
 		}
 
-		meter := models.Meter{}
+		var meter models.Meter
 		meter.ID = uint32(mid)
 		meterReceived, err := meter.FindMeterByID(server.DB)
 		if err != nil {
@@ -105,16 +106,27 @@ func (server *Server) GetMeter() routing.Handler {
 func (server *Server) UpdateMeter() routing.Handler {
 	return func(c *routing.Context) error {
 		var meter models.Meter
-		if err := c.Read(&meter); err != nil {
+		mid, err := strconv.Atoi(c.Param("id"))
+		if err != nil {
 			return errors.BadRequest(err.Error())
 		}
-		meter.Prepare()
 
-		if err := meter.Validate(); err != nil {
+		meter.ID = uint32(mid)
+		meterReceived, err := meter.FindMeterByID(server.DB)
+		if err != nil {
+			return errors.InternalServerError(err.Error())
+		}
+
+		if err := c.Read(&meterReceived); err != nil {
+			return errors.BadRequest(err.Error())
+		}
+
+		meterReceived.UpdatedAt = time.Now()
+		if err := meterReceived.Validate(); err != nil {
 			return errors.ValidationRequest(err.Error())
 		}
 
-		meterUpdated, err := meter.UpdateAMeter(server.DB)
+		meterUpdated, err := meterReceived.UpdateAMeter(server.DB)
 		if err != nil {
 			return errors.InternalServerError(err.Error())
 		}
@@ -165,11 +177,11 @@ func (server *Server) GetMeterTelemetryController() routing.Handler {
 		}
 
 		meter := models.Meter{}
-		count := meter.CountMeterTelemetryByID(app.MongoDB, uint64(mid), uint64(filterfrom), uint64(filterto))
-		var paginatedList *app.PaginatedList
+		// count := meter.CountMeterTelemetryByID(app.MongoDB, uint64(mid), uint64(filterfrom), uint64(filterto))
+		count := 1
 
+		paginatedList := getPaginatedListFromRequest(c, count, page, perPage)
 		if count > 0 {
-			paginatedList = getPaginatedListFromRequest(c, count, page, perPage)
 			meterReceived, err := meter.FindMeterTelemetryByID(app.MongoDB, uint64(mid), order, paginatedList.Offset(), paginatedList.Limit(), uint64(filterfrom), uint64(filterto))
 			if err != nil {
 				return errors.NoContentFound(err.Error())

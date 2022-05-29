@@ -13,11 +13,12 @@ type Gateway struct {
 	SectionID          int                 `gorm:"null" json:"section_id"`
 	CompanyID          uint32              `gorm:"not null;" json:"company_id"`
 	GatewayName        string              `gorm:"not null;" json:"gateway_name" db:"gateway_name"`
+	GatewayNumber      int64               `gorm:"not null;" json:"gateway_number" db:"gateway_number"`
 	Status             int8                `gorm:"not null;" json:"status" db:"status"`
 	GatewayDescription string              `gorm:"null;" json:"gateway_description"`
 	CreatedAt          time.Time           `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
 	UpdatedAt          time.Time           `gorm:"default:CURRENT_TIMESTAMP" json:"updated_at"`
-	AddedBy            uint32              `gorm:"-" json:"added_by"`
+	AddedBy            uint32              `gorm:"not null;" json:"added_by"`
 	Company            CompanyShortDetails `gorm:"-" json:"company_details"`
 }
 
@@ -31,6 +32,9 @@ func (g *Gateway) Prepare() {
 // Validate ...
 func (g *Gateway) Validate() error {
 
+	if g.GatewayNumber == 0 {
+		return errors.New("Gateway Number is Required")
+	}
 	if g.GatewayName == "" {
 		return errors.New("Gateway Name is Required")
 	}
@@ -43,6 +47,8 @@ func (g *Gateway) SaveGateway(db *gorm.DB) (*Gateway, error) {
 	if err := db.Debug().Model(&Gateway{}).Create(&g).Error; err != nil {
 		return &Gateway{}, err
 	}
+
+	db.Debug().Table("companies").Model(&Companies{}).Where("id = ?", g.CompanyID).Take(&g.Company)
 
 	return g, nil
 }
@@ -102,9 +108,9 @@ func (g *Gateway) ListAllGateways(db *gorm.DB, roleid uint32, offset, limit int)
 }
 
 // FindGatewayByID ...
-func (g *Gateway) FindGatewayByID(db *gorm.DB, pid uint64) (*Gateway, error) {
+func (g *Gateway) FindGatewayByID(db *gorm.DB) (*Gateway, error) {
 	var err error
-	err = db.Debug().Model(&Gateway{}).Where("id = ?", pid).Take(&g).Error
+	err = db.Debug().Model(&Gateway{}).Where("id = ?", g.ID).Take(&g).Error
 	if err != nil {
 		return g, err
 	}
@@ -116,27 +122,16 @@ func (g *Gateway) FindGatewayByID(db *gorm.DB, pid uint64) (*Gateway, error) {
 
 // UpdateAGateway ...
 func (g *Gateway) UpdateAGateway(db *gorm.DB) (*Gateway, error) {
-
-	var err error
-	db.Debug().Model(&Gateway{}).Where("id = ?", g.ID).Take(&Gateway{}).UpdateColumns(
+	err := db.Debug().Model(&Gateway{}).Where("id = ?", g.ID).Take(&Gateway{}).UpdateColumns(
 		map[string]interface{}{
 			"gateway_name":        g.GatewayName,
+			"gateway_number":      g.GatewayNumber,
 			"section_id":          g.SectionID,
 			"gateway_description": g.GatewayDescription,
 			"updated_at":          g.UpdatedAt,
 		},
-	)
-	err = db.Debug().Model(&Gateway{}).Where("id = ?", g.ID).Take(&g).Error
-	if err != nil {
-		return &Gateway{}, err
-	}
-	if g.ID != 0 {
-		err = db.Debug().Model(&User{}).Where("id = ?", g.CompanyID).Take(&g.Company).Error
-		if err != nil {
-			return &Gateway{}, err
-		}
-	}
-	return g, nil
+	).Error
+	return g, err
 }
 
 // DeleteAGateway ...

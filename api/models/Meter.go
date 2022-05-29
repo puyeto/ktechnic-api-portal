@@ -20,14 +20,16 @@ type Meter struct {
 	ID               uint32              `gorm:"primary_key;auto_increment" json:"id"`
 	CompanyID        uint32              `gorm:"not null;" json:"company_id"`
 	GatewayID        uint32              `gorm:"not null;" json:"gateway_id"`
-	PricePlanID      uint32              `json:"price_plan_id" gorm:"not null"`
-	MeterName        string              `gorm:"not null" json:"meter_name"`
-	MeterNumber      string              `gorm:"not null" json:"meter_number"`
+	PricePlanID      uint32              `json:"price_plan_id" gorm:"not null;"`
+	MeterName        string              `gorm:"not null;" json:"meter_name"`
+	MeterNumber      int64               `gorm:"not null;" json:"meter_number"`
 	Status           int8                `gorm:"not null;" json:"status" db:"status"`
-	MeterDescription string              `gorm:"null" json:"meter_description"`
+	MeterDescription string              `gorm:"null;" json:"meter_description"`
+	ValveStatus      int8                `gorm:"not null;" json:"valve_status"`
+	LastSeen         time.Time           `gorm:"null;" json:"last_seen"`
 	CreatedAt        time.Time           `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
 	UpdatedAt        time.Time           `gorm:"default:CURRENT_TIMESTAMP" json:"updated_at"`
-	AddedBy          uint32              `gorm:"-" json:"added_by"`
+	AddedBy          uint32              `gorm:"not null;" json:"added_by"`
 	Gateway          Gateway             `gorm:"-" json:"gateway_details"`
 	Company          CompanyShortDetails `gorm:"-" json:"company_details"`
 }
@@ -36,6 +38,7 @@ type Meter struct {
 func (m *Meter) Prepare() {
 	m.CreatedAt = time.Now()
 	m.UpdatedAt = time.Now()
+	m.ValveStatus = 1
 	m.Status = 1
 }
 
@@ -45,8 +48,8 @@ func (m *Meter) Validate() error {
 	if m.MeterName == "" {
 		return errors.New("Meter Name is Required")
 	}
-	if m.MeterNumber == "" {
-		return errors.New("Meter Serial is Required")
+	if m.MeterNumber == 0 {
+		return errors.New("Meter Number is Required")
 	}
 	if m.GatewayID == 0 {
 		return errors.New("Gateway is Required")
@@ -68,10 +71,13 @@ func (m *Meter) SaveMeter(db *gorm.DB) (*Meter, error) {
 		return m, errors.New("Meter already exist")
 	}
 
+	fmt.Println(m.AddedBy)
+
 	if err := db.Debug().Model(m).Create(&m).Error; err != nil {
 		return m, err
 	}
 
+	db.Debug().Table("companies").Model(&Companies{}).Where("id = ?", m.CompanyID).Take(&m.Company)
 	return m, nil
 }
 
@@ -154,9 +160,7 @@ func (m *Meter) FindMeterByID(db *gorm.DB) (*Meter, error) {
 
 // UpdateAMeter ...
 func (m *Meter) UpdateAMeter(db *gorm.DB) (*Meter, error) {
-
-	var err error
-	db.Debug().Model(m).Where("id = ?", m.ID).Take(m).UpdateColumns(
+	err := db.Debug().Model(m).Where("id = ?", m.ID).Updates(
 		map[string]interface{}{
 			"gateway_id":        m.GatewayID,
 			"price_plan_id":     m.PricePlanID,
@@ -164,19 +168,12 @@ func (m *Meter) UpdateAMeter(db *gorm.DB) (*Meter, error) {
 			"meter_number":      m.MeterNumber,
 			"meter_description": m.MeterDescription,
 			"updated_at":        m.UpdatedAt,
+			"status":            m.Status,
+			"valve_status":      m.ValveStatus,
 		},
-	)
-	err = db.Debug().Model(m).Where("id = ?", m.ID).Take(&m).Error
-	if err != nil {
-		return m, err
-	}
-	if m.ID != 0 {
-		err = db.Debug().Model(&User{}).Where("id = ?", m.CompanyID).Take(&m.Company).Error
-		if err != nil {
-			return m, err
-		}
-	}
-	return m, nil
+	).Error
+
+	return m, err
 }
 
 // DeleteAMeter ...
@@ -206,52 +203,57 @@ func (m *Meter) CountMeterTelemetryByID(db *mongo.Database, mid uint64, filterfr
 }
 
 // FindMeterTelemetryByID ...
-func (m *Meter) FindMeterTelemetryByID(db *mongo.Database, mid uint64, order string, offset, limit int, filterfrom, filterto uint64) (*[]DeviceData, error) {
-	var Telemetry []DeviceData
+// func (m *Meter) FindMeterTelemetryByID(db *mongo.Database, mid uint64, order string, offset, limit int, filterfrom, filterto uint64) (*[]DataPacket, error) {
+func (m *Meter) FindMeterTelemetryByID(db *mongo.Database, mid uint64, order string, offset, limit int, filterfrom, filterto uint64) (app.DataPacket, error) {
+	// var Telemetry []DataPacket
 
-	// Get collection
-	collection := db.Collection("data_" + strconv.FormatInt(int64(mid), 10))
-	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
-	app.CreateIndexMongo("data_" + strconv.FormatInt(int64(mid), 10))
+	var d = app.DataPacket{}
+	d.CreatedOn = time.Now()
+	return d, nil
 
-	findOptions := options.Find()
-	// Sort by `price` field descending
-	if order == "asc" {
-		findOptions.SetSort(bson.D{{"datetimestamp", 1}})
-	} else {
-		findOptions.SetSort(bson.D{{"datetimestamp", -1}})
-	}
+	// // Get collection
+	// collection := db.Collection("data_" + strconv.FormatInt(int64(mid), 10))
+	// ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+	// app.CreateIndexMongo("data_" + strconv.FormatInt(int64(mid), 10))
 
-	findOptions.SetSkip(int64(offset))
-	findOptions.SetLimit(int64(limit))
+	// findOptions := options.Find()
+	// // Sort by `price` field descending
+	// if order == "asc" {
+	// 	findOptions.SetSort(bson.D{{"datetimestamp", 1}})
+	// } else {
+	// 	findOptions.SetSort(bson.D{{"datetimestamp", -1}})
+	// }
 
-	filter := bson.D{}
-	if filterfrom > 0 && filterto > 0 {
-		filter = bson.D{{"datetimestamp", bson.D{{"$gte", filterfrom}}}, {"datetimestamp", bson.D{{"$lte", filterto}}}}
-	}
+	// findOptions.SetSkip(int64(offset))
+	// findOptions.SetLimit(int64(limit))
 
-	cur, err := collection.Find(ctx, filter, findOptions)
-	if err != nil {
-		return &Telemetry, err
-	}
-	defer cur.Close(ctx)
+	// filter := bson.D{}
+	// if filterfrom > 0 && filterto > 0 {
+	// 	filter = bson.D{{"datetimestamp", bson.D{{"$gte", filterfrom}}}, {"datetimestamp", bson.D{{"$lte", filterto}}}}
+	// }
 
-	for cur.Next(context.Background()) {
-		item := DeviceData{}
-		err := cur.Decode(&item)
-		if err != nil {
-			continue
-		}
-		Telemetry = append(Telemetry, item)
+	// cur, err := collection.Find(ctx, filter, findOptions)
+	// if err != nil {
+	// 	return &Telemetry, err
+	// }
+	// defer cur.Close(ctx)
 
-		// fmt.Println("Found a document: ", item)
+	// for cur.Next(context.Background()) {
+	// 	item := DataPacket{}
+	// 	err := cur.Decode(&item)
+	// 	if err != nil {
+	// 		continue
+	// 	}
+	// 	Telemetry = append(Telemetry, item)
 
-	}
-	if err := cur.Err(); err != nil {
-		return &Telemetry, err
-	}
+	// 	// fmt.Println("Found a document: ", item)
 
-	return &Telemetry, err
+	// }
+	// if err := cur.Err(); err != nil {
+	// 	return &Telemetry, err
+	// }
+
+	// return &Telemetry, err
 }
 
 // Count returns the number of trip records in the database.

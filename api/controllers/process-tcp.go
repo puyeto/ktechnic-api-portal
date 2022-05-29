@@ -2,11 +2,8 @@ package controllers
 
 import (
 	"bufio"
-	"bytes"
-	"encoding/binary"
+	"errors"
 	"fmt"
-	"io"
-	"math"
 	"net"
 	"strconv"
 	"strings"
@@ -24,6 +21,9 @@ var server = Server{}
 func HandleConnection(c net.Conn) {
 	fmt.Printf("Serving %s\n", c.RemoteAddr().String())
 	for {
+		dataPackers := make(chan app.DataPacket)
+		go generateResponses(dataPackers)
+
 		netData, err := bufio.NewReader(c).ReadString('\n')
 		if err != nil {
 			fmt.Println(err)
@@ -35,184 +35,132 @@ func HandleConnection(c net.Conn) {
 			break
 		}
 
-		fmt.Print(temp)
-
 		result := "Received\n"
 		c.Write([]byte(string(result)))
+
+		// Process Data
+		processedData, err := processRequest(temp)
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+
+		dataPackers <- processedData
 	}
+
 	c.Close()
 }
 
-// HandleRequest Handles incoming requests.
-func HandleRequest(conn net.Conn) {
+func processRequest(dataPacket string) (app.DataPacket, error) {
+	var data = app.DataPacket{}
+	// #D#867857030306398#49#090522;140704;1;100;30;8;0;1;24
+	dataPacketArray := splitString(trimLeftChar(dataPacket), ";")
+	meterdetails := splitString(dataPacketArray[0], "#")
 
-	byteData := make([]byte, 83)
-
-	for {
-		reqLen, err := conn.Read(byteData)
-		if err != nil {
-			if err != io.EOF {
-				fmt.Println("End of file error:", err)
-			}
-			fmt.Println("Error reading:", err.Error(), reqLen)
-			return
-		}
-
-		// return Response
-		result := "Received byte size = " + strconv.Itoa(reqLen) + "\n"
-		fmt.Println(result)
-		conn.Write([]byte(string(result)))
-
-		// if reqLen == 0 {
-		// 	return // connection already closed by client
-		// }
-
-		// if reqLen > 0 {
-		// 	byteRead := bytes.NewReader(byteData)
-
-		// 	mb := make([]byte, reqLen)
-		// 	n1, _ := byteRead.Read(mb)
-
-		// 	processRequest(conn, mb, n1)
-
-		// }
-		// opsRate.Mark(1)
+	data.DataIdentifier = meterdetails[0]
+	if data.DataIdentifier != "D" {
+		return data, errors.New("Invalid Data")
 	}
-}
 
-func readNextBytes(conn net.Conn, number int) (int, []byte) {
-	bytes := make([]byte, number)
+	data.GatewayNumber = stringToUInt64(meterdetails[1])
+	if data.GatewayNumber == 0 {
+		return data, errors.New("Invalid Gateway")
+	}
+	data.MeterNumber = stringToUInt64(meterdetails[2])
 
-	reqLen, err := conn.Read(bytes)
+	d := splitString(meterdetails[3], "")
+	t := splitString(dataPacketArray[1], "")
+	myDateString := "20" + d[4] + d[5] + "-" + d[2] + d[3] + "-" + d[0] + d[1] + " " + t[0] + t[1] + ":" + t[2] + t[3] + ":" + t[4] + t[5]
+	myDate, err := time.Parse("2006-01-02 15:04:05", myDateString)
 	if err != nil {
-		if err != io.EOF {
-			fmt.Println("End of file error:", err)
+		return data, err
+	}
+
+	data.Date = myDate.Format("2006-01-02")
+	data.Time = myDate.Format("15:04:05")
+	data.PowerConnected = uint8(stringToUInt64(dataPacketArray[2]))
+	data.BatteryCharge = uint8(stringToUInt64(dataPacketArray[3]))
+	data.GSMSignal = uint8(stringToUInt64(dataPacketArray[4]))
+	data.TPU = int(stringToUInt64(dataPacketArray[5]))
+	data.MeterReading = uint32(stringToUInt64(dataPacketArray[6]))
+	data.ValveStatus = uint8(stringToUInt64(dataPacketArray[7]))
+	data.FirmwareVersion = stringToUInt64(dataPacketArray[8])
+	data.DateTime = myDate
+	data.DateTimeStamp = myDate.Unix()
+	created := time.Now()
+	data.CreatedOn, _ = time.Parse("2006-01-02 15:04:05", created.Format("2006-01-02 15:04:05"))
+
+	return data, nil
+}
+
+func stringToUInt64(val string) uint64 {
+	n, err := strconv.ParseUint(val, 10, 64)
+	if err != nil {
+		return 0
+	}
+	return n
+}
+
+func trimLeftChar(s string) string {
+	for i := range s {
+		if i > 0 {
+			return s[i:]
 		}
-		fmt.Println("Error reading:", err.Error(), reqLen)
 	}
-
-	return reqLen, bytes
+	return s[:0]
 }
 
-func processRequest(conn net.Conn, b []byte, byteLen int) {
-	clientJobs := make(chan models.DeviceData)
-	go generateResponses(clientJobs)
-
-	var deviceData models.DeviceData
-
-	if byteLen < 82 {
-		fmt.Println("Invalid Byte Length = ", byteLen)
-		return
-	}
-
-	byteReader := bytes.NewReader(b)
-
-	scode := processSeeked(byteReader, 5, 0)
-	deviceData.SystemCode = string(scode)
-	if deviceData.SystemCode != "LEMON" {
-		return
-	}
-
-	mid := processSeeked(byteReader, 1, 5)
-	deviceData.MessageID = int(mid[0])
-
-	bc := processSeeked(byteReader, 1, 6)
-	deviceData.ByteCount = int(bc[0])
-
-	gid := processSeeked(byteReader, 4, 7)
-	deviceData.GatewayID = binary.LittleEndian.Uint32(gid)
-
-	did := processSeeked(byteReader, 4, 11)
-	deviceData.DeviceID = binary.LittleEndian.Uint32(did)
-	deviceData.MeterID = deviceData.DeviceID
-
-	en1 := processSeeked(byteReader, 4, 15)
-	deviceData.VoltageLine1 = float32frombytes(en1)
-
-	en2 := processSeeked(byteReader, 4, 19)
-	deviceData.VoltageLine2 = float32frombytes(en2)
-
-	en3 := processSeeked(byteReader, 4, 23)
-	deviceData.VoltageLine3 = float32frombytes(en3)
-
-	edl := processSeeked(byteReader, 4, 27)
-	deviceData.TotalLineCurrent = float32frombytes(edl)
-
-	eds := processSeeked(byteReader, 4, 31)
-	deviceData.SystemPower = float32frombytes(eds)
-
-	edsp := processSeeked(byteReader, 4, 35)
-	deviceData.SystemPowerFactor = float32frombytes(edsp)
-
-	edsf := processSeeked(byteReader, 4, 39)
-	deviceData.SystemFrequency = float32frombytes(edsf)
-
-	res := processSeeked(byteReader, 4, 43)
-	deviceData.ImportActiveEnergy = float32frombytes(res)
-
-	res = processSeeked(byteReader, 4, 47)
-	deviceData.ImportReactiveEnergy = float32frombytes(res)
-
-	res = processSeeked(byteReader, 1, 75)
-	deviceData.UTCTimeSeconds = int(res[0])
-
-	res = processSeeked(byteReader, 1, 76)
-	deviceData.UTCTimeMinutes = int(res[0])
-
-	res = processSeeked(byteReader, 1, 77)
-	deviceData.UTCTimeHours = int(res[0])
-
-	res = processSeeked(byteReader, 1, 78)
-	deviceData.UTCTimeDay = int(res[0])
-
-	mn := processSeeked(byteReader, 1, 79)
-	deviceData.UTCTimeMonth = int(mn[0])
-
-	yr := processSeeked(byteReader, 2, 80)
-	deviceData.UTCTimeYear = int(binary.LittleEndian.Uint16(yr))
-
-	checksum := processSeeked(byteReader, 1, 82)
-	deviceData.Checksum = int(checksum[0])
-
-	deviceData.DateTime = time.Date(deviceData.UTCTimeYear, time.Month(deviceData.UTCTimeMonth), deviceData.UTCTimeDay, deviceData.UTCTimeHours, deviceData.UTCTimeMinutes, deviceData.UTCTimeSeconds, 0, time.UTC)
-	deviceData.DateTimeStamp = deviceData.DateTime.Unix()
-	deviceData.CreatedOn = time.Now()
-
-	fmt.Println(deviceData)
-	chks := make([]byte, 1)
-	for i := 5; i < 81; i++ {
-		chks[0] += b[i]
-	}
-
-	if chks[0] != checksum[0] {
-		return
-	}
-
-	clientJobs <- deviceData
-
+func splitString(str, sep string) []string {
+	return strings.Split(str, sep)
 }
 
-func processSeeked(byteReader *bytes.Reader, bytesize, seek int64) []byte {
-	byteReader.Seek(seek, 0)
-	val := make([]byte, bytesize)
-	byteReader.Read(val)
-	return val
-}
+func generateResponses(dataPackers chan app.DataPacket) {
 
-func float32frombytes(bytes []byte) float32 {
-	bits := binary.BigEndian.Uint32(bytes)
-	float := math.Float32frombits(bits)
-	return float
-}
-
-func generateResponses(deviceData chan models.DeviceData) {
 	for {
-		// Wait for the next job to come off the queue.
-		d := <-deviceData
+		clientJob := <-dataPackers
+		fmt.Println("processed : ", clientJob)
 
-		// LogToRedis(clientJob.DeviceData)
-		server.logToMongoDB(d)
+				// use a WaitGroup
+				var wg sync.WaitGroup
 
+				// Wait for the next job to come off the queue.
+				// LogToRedis(clientJob)
+
+				// make a channel with a capacity of 100.
+				jobChan := make(chan app.DataPacket, queueLimit)
+
+				worker := func(jobChan <-chan app.DataPacket) {
+					defer wg.Done()
+					for job := range jobChan {
+						// updateVehicleStatus(job.DeviceID, "online", "Online", job.DateTime)
+
+						// SaveAllData(job)
+						if err := app.LogToMongoDB(job); err != nil {
+							fmt.Printf("Mongo DB - logging error: %v", err)
+						}
+						if err := app.LoglastSeenMongoDB(job); err != nil {
+							fmt.Printf("Mongo DB - logging last seen error: %v", err)
+						}
+
+						// meterid = processedData.MeterNumber
+						// devicetime = processedData.DateTime
+
+						// updateVehicleStatus(meterid, "online", "Online", devicetime)
+					}
+				}
+
+				// increment the WaitGroup before starting the worker
+				wg.Add(1)
+				go worker(jobChan)
+
+				// enqueue a job
+				jobChan <- clientJob
+
+				// to stop the worker, first close the job channel
+				close(jobChan)
+
+				// then wait using the WaitGroup
+				WaitTimeout(&wg, 1*time.Second)
 	}
 }
 
@@ -236,16 +184,6 @@ func WaitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
 func hasBit(n int, pos uint) bool {
 	val := n & (1 << pos)
 	return (val > 0)
-}
-
-func readInt32(data []byte) (ret int32) {
-	buf := bytes.NewReader(data)
-	err := binary.Read(buf, binary.LittleEndian, &ret)
-	if err != nil {
-		fmt.Println("binary.Read failed:", err)
-	}
-
-	return ret
 }
 
 // FloatToString ...

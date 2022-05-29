@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"strconv"
+	"time"
 
 	routing "github.com/go-ozzo/ozzo-routing/v2"
 	"github.com/ktechnics/ktechnics-api/api/auth"
@@ -84,13 +85,14 @@ func (server *Server) ListGatewaysHandler() routing.Handler {
 // GetGatewayHandler ...
 func (server *Server) GetGatewayHandler() routing.Handler {
 	return func(c *routing.Context) error {
-		vid, err := strconv.Atoi(c.Param("id"))
+		gid, err := strconv.Atoi(c.Param("id"))
 		if err != nil {
 			return errors.BadRequest(err.Error())
 		}
 
 		gateway := models.Gateway{}
-		gatewayReceived, err := gateway.FindGatewayByID(server.DB, uint64(vid))
+		gateway.ID = gid
+		gatewayReceived, err := gateway.FindGatewayByID(server.DB)
 		if err != nil {
 			return errors.NoContentFound(err.Error())
 		}
@@ -103,16 +105,27 @@ func (server *Server) GetGatewayHandler() routing.Handler {
 func (server *Server) UpdateGatewayHandler() routing.Handler {
 	return func(c *routing.Context) error {
 		var gateway models.Gateway
-		if err := c.Read(&gateway); err != nil {
+		gid, err := strconv.Atoi(c.Param("id"))
+		if err != nil {
 			return errors.BadRequest(err.Error())
 		}
-		gateway.Prepare()
 
-		if err := gateway.Validate(); err != nil {
+		gateway.ID = gid
+		gatewayReceived, err := gateway.FindGatewayByID(server.DB)
+		if err != nil {
+			return errors.InternalServerError(err.Error())
+		}
+
+		if err := c.Read(&gatewayReceived); err != nil {
+			return errors.BadRequest(err.Error())
+		}
+
+		gatewayReceived.UpdatedAt = time.Now()
+		if err := gatewayReceived.Validate(); err != nil {
 			return errors.ValidationRequest(err.Error())
 		}
 
-		gatewayUpdated, err := gateway.UpdateAGateway(server.DB)
+		gatewayUpdated, err := gatewayReceived.UpdateAGateway(server.DB)
 		if err != nil {
 			return errors.InternalServerError(err.Error())
 		}

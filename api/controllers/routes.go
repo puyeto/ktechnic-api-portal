@@ -38,7 +38,7 @@ func (s *Server) InitializeRoutes(rg *routing.RouteGroup) {
 	rg.Get("/meters", s.ListMeters())
 	rg.Get("/meter/get/<id>", s.GetMeter())
 	// rg.Get("/meter", s.GetVMeterDetailsByRegNoController())
-	rg.Put("/meters", s.UpdateMeter())
+	rg.Put("/meter/<id>", s.UpdateMeter())
 	rg.Delete("/meter/<id>", s.DeleteMeter())
 	rg.Get("/meter/telemetry/<id>", s.GetMeterTelemetryController())
 	rg.Get("/meter/count", s.CountMeters())
@@ -47,7 +47,7 @@ func (s *Server) InitializeRoutes(rg *routing.RouteGroup) {
 	rg.Post("/gateways", s.CreateGatewaysHandler())
 	rg.Get("/gateways", s.ListGatewaysHandler())
 	rg.Get("/gateway/get/<id>", s.GetGatewayHandler())
-	rg.Put("/gateways", s.UpdateGatewayHandler())
+	rg.Put("/gateway/<id>", s.UpdateGatewayHandler())
 	rg.Delete("/gateway/<id>", s.DeleteGatewayHandler())
 	rg.Get("/gateway/count", s.CountGateways())
 
