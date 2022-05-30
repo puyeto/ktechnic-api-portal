@@ -211,63 +211,58 @@ func (m *Meter) CountMeterTelemetryByID(db *mongo.Database, mid uint64, filterfr
 	}
 
 	deviceid := strconv.Itoa(int(mid))
-	count, err := Count(deviceid, filter, nil)
-	fmt.Printf("count %v with error %v", count, err)
+	count, _ := Count(deviceid, filter, nil)
+	// fmt.Printf("count %v with error %v", count, err)
 	return count
 }
 
 // FindMeterTelemetryByID ...
-// func (m *Meter) FindMeterTelemetryByID(db *mongo.Database, mid uint64, order string, offset, limit int, filterfrom, filterto uint64) (*[]DataPacket, error) {
-func (m *Meter) FindMeterTelemetryByID(db *mongo.Database, mid uint64, order string, offset, limit int, filterfrom, filterto uint64) (app.DataPacket, error) {
-	// var Telemetry []DataPacket
+func (m *Meter) FindMeterTelemetryByID(db *mongo.Database, mid uint64, order string, offset, limit int, filterfrom, filterto uint64) (*[]app.DataPacket, error) {
+	var telemetry []app.DataPacket
 
-	var d = app.DataPacket{}
-	d.CreatedOn = time.Now()
-	return d, nil
+	// Get collection
+	collection := db.Collection("data_" + strconv.FormatInt(int64(mid), 10))
+	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+	app.CreateIndexMongo("data_" + strconv.FormatInt(int64(mid), 10))
 
-	// // Get collection
-	// collection := db.Collection("data_" + strconv.FormatInt(int64(mid), 10))
-	// ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
-	// app.CreateIndexMongo("data_" + strconv.FormatInt(int64(mid), 10))
+	findOptions := options.Find()
+	// Sort by `price` field descending
+	if order == "asc" {
+		findOptions.SetSort(bson.D{{"datetimestamp", 1}})
+	} else {
+		findOptions.SetSort(bson.D{{"datetimestamp", -1}})
+	}
 
-	// findOptions := options.Find()
-	// // Sort by `price` field descending
-	// if order == "asc" {
-	// 	findOptions.SetSort(bson.D{{"datetimestamp", 1}})
-	// } else {
-	// 	findOptions.SetSort(bson.D{{"datetimestamp", -1}})
-	// }
+	findOptions.SetSkip(int64(offset))
+	findOptions.SetLimit(int64(limit))
 
-	// findOptions.SetSkip(int64(offset))
-	// findOptions.SetLimit(int64(limit))
+	filter := bson.D{}
+	if filterfrom > 0 && filterto > 0 {
+		filter = bson.D{{"datetimestamp", bson.D{{"$gte", filterfrom}}}, {"datetimestamp", bson.D{{"$lte", filterto}}}}
+	}
 
-	// filter := bson.D{}
-	// if filterfrom > 0 && filterto > 0 {
-	// 	filter = bson.D{{"datetimestamp", bson.D{{"$gte", filterfrom}}}, {"datetimestamp", bson.D{{"$lte", filterto}}}}
-	// }
+	cur, err := collection.Find(ctx, filter, findOptions)
+	if err != nil {
+		return &telemetry, err
+	}
+	defer cur.Close(ctx)
 
-	// cur, err := collection.Find(ctx, filter, findOptions)
-	// if err != nil {
-	// 	return &Telemetry, err
-	// }
-	// defer cur.Close(ctx)
+	for cur.Next(context.Background()) {
+		item := app.DataPacket{}
+		err := cur.Decode(&item)
+		if err != nil {
+			continue
+		}
+		telemetry = append(telemetry, item)
 
-	// for cur.Next(context.Background()) {
-	// 	item := DataPacket{}
-	// 	err := cur.Decode(&item)
-	// 	if err != nil {
-	// 		continue
-	// 	}
-	// 	Telemetry = append(Telemetry, item)
+		// fmt.Println("Found a document: ", item)
 
-	// 	// fmt.Println("Found a document: ", item)
+	}
+	if err := cur.Err(); err != nil {
+		return &telemetry, err
+	}
 
-	// }
-	// if err := cur.Err(); err != nil {
-	// 	return &Telemetry, err
-	// }
-
-	// return &Telemetry, err
+	return &telemetry, err
 }
 
 // Count returns the number of trip records in the database.

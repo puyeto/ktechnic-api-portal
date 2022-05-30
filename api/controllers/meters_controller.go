@@ -229,9 +229,7 @@ func (server *Server) GetMeterTelemetryController() routing.Handler {
 		}
 
 		meter := models.Meter{}
-		// count := meter.CountMeterTelemetryByID(app.MongoDB, uint64(mid), uint64(filterfrom), uint64(filterto))
-		count := 1
-
+		count := meter.CountMeterTelemetryByID(app.MongoDB, uint64(mid), uint64(filterfrom), uint64(filterto))
 		paginatedList := getPaginatedListFromRequest(c, count, page, perPage)
 		if count > 0 {
 			meterReceived, err := meter.FindMeterTelemetryByID(app.MongoDB, uint64(mid), order, paginatedList.Offset(), paginatedList.Limit(), uint64(filterfrom), uint64(filterto))
