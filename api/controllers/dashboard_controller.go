@@ -58,7 +58,7 @@ func (server *Server) MeterStatsHandler() routing.Handler {
 		meter.ID = uint32(parseInt(c.Query("meter_id"), 0))
 
 		// Check if meter exists
-		meterDetails, err := meter.FindMeterByID(server.DB)
+		meterDetails, err := meter.GetMeterByID(server.DB)
 		if err != nil {
 			return errors.InternalServerError(err.Error())
 		}

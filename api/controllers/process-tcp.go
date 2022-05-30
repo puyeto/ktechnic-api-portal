@@ -2,9 +2,12 @@ package controllers
 
 import (
 	"bufio"
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
+	"net/http"
 	"strconv"
 	"strings"
 	"sync"
@@ -120,47 +123,46 @@ func generateResponses(dataPackers chan app.DataPacket) {
 		clientJob := <-dataPackers
 		fmt.Println("processed : ", clientJob)
 
-				// use a WaitGroup
-				var wg sync.WaitGroup
+		// use a WaitGroup
+		var wg sync.WaitGroup
 
-				// Wait for the next job to come off the queue.
-				// LogToRedis(clientJob)
+		// Wait for the next job to come off the queue.
+		// LogToRedis(clientJob)
 
-				// make a channel with a capacity of 100.
-				jobChan := make(chan app.DataPacket, queueLimit)
+		// make a channel with a capacity of 100.
+		jobChan := make(chan app.DataPacket, queueLimit)
 
-				worker := func(jobChan <-chan app.DataPacket) {
-					defer wg.Done()
-					for job := range jobChan {
-						// updateVehicleStatus(job.DeviceID, "online", "Online", job.DateTime)
+		worker := func(jobChan <-chan app.DataPacket) {
+			defer wg.Done()
+			for job := range jobChan {
+				// updateVehicleStatus(job.DeviceID, "online", "Online", job.DateTime)
 
-						// SaveAllData(job)
-						if err := app.LogToMongoDB(job); err != nil {
-							fmt.Printf("Mongo DB - logging error: %v", err)
-						}
-						if err := app.LoglastSeenMongoDB(job); err != nil {
-							fmt.Printf("Mongo DB - logging last seen error: %v", err)
-						}
-
-						// meterid = processedData.MeterNumber
-						// devicetime = processedData.DateTime
-
-						// updateVehicleStatus(meterid, "online", "Online", devicetime)
-					}
+				// SaveAllData(job)
+				if err := app.LogToMongoDB(job); err != nil {
+					fmt.Printf("Mongo DB - logging error: %v", err)
+				}
+				if err := app.LoglastSeenMongoDB(job); err != nil {
+					fmt.Printf("Mongo DB - logging last seen error: %v", err)
 				}
 
-				// increment the WaitGroup before starting the worker
-				wg.Add(1)
-				go worker(jobChan)
+				meterno := job.MeterNumber
+				devicetime := job.DateTime
+				updateMeterLastSeenStatus(meterno, devicetime)
+			}
+		}
 
-				// enqueue a job
-				jobChan <- clientJob
+		// increment the WaitGroup before starting the worker
+		wg.Add(1)
+		go worker(jobChan)
 
-				// to stop the worker, first close the job channel
-				close(jobChan)
+		// enqueue a job
+		jobChan <- clientJob
 
-				// then wait using the WaitGroup
-				WaitTimeout(&wg, 1*time.Second)
+		// to stop the worker, first close the job channel
+		close(jobChan)
+
+		// then wait using the WaitGroup
+		WaitTimeout(&wg, 1*time.Second)
 	}
 }
 
@@ -195,4 +197,30 @@ func FloatToString(inputnum float64) string {
 // logToMongoDB ...
 func (s *Server) logToMongoDB(deviceData models.DeviceData) error {
 	return deviceData.SaveDeviceData(app.MongoDB)
+}
+
+func updateMeterLastSeenStatus(meterno uint64, dtime time.Time) {
+	payload, _ := json.Marshal(map[string]interface{}{
+		"last_seen": dtime,
+	})
+
+	// initialize http client
+	client := &http.Client{}
+
+	// set the HTTP method, url, and request body
+	url := "http://0.0.0.0:9002/api/meter/updatebynumber/" + strconv.FormatUint(meterno, 10)
+	fmt.Println(url)
+	req, err := http.NewRequest(http.MethodPut, url, bytes.NewBuffer(payload))
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	// set the request header Content-Type for json
+	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+	resp, err := client.Do(req)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(resp.StatusCode)
 }

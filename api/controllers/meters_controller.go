@@ -83,8 +83,8 @@ func (server *Server) ListMeters() routing.Handler {
 	}
 }
 
-// GetMeter ...
-func (server *Server) GetMeter() routing.Handler {
+// GetMeterByID ...
+func (server *Server) GetMeterByID() routing.Handler {
 	return func(c *routing.Context) error {
 		mid, err := strconv.Atoi(c.Param("id"))
 		if err != nil {
@@ -93,9 +93,28 @@ func (server *Server) GetMeter() routing.Handler {
 
 		var meter models.Meter
 		meter.ID = uint32(mid)
-		meterReceived, err := meter.FindMeterByID(server.DB)
+		meterReceived, err := meter.GetMeterByID(server.DB)
 		if err != nil {
-			return errors.NoContentFound(err.Error())
+			return errors.InternalServerError(err.Error())
+		}
+
+		return c.Write(meterReceived)
+	}
+}
+
+// GetMeterByMeterNumber
+func (server *Server) GetMeterByMeterNumber() routing.Handler {
+	return func(c *routing.Context) error {
+		mno := stringToUInt64(c.Param("id"))
+		if mno == 0 {
+			return errors.InternalServerError("Invalid Meter Number")
+		}
+
+		var meter models.Meter
+		meter.MeterNumber = mno
+		meterReceived, err := meter.GetMeterByMeterNumber(server.DB)
+		if err != nil {
+			return errors.InternalServerError(err.Error())
 		}
 
 		return c.Write(meterReceived)
@@ -112,7 +131,40 @@ func (server *Server) UpdateMeter() routing.Handler {
 		}
 
 		meter.ID = uint32(mid)
-		meterReceived, err := meter.FindMeterByID(server.DB)
+		meterReceived, err := meter.GetMeterByID(server.DB)
+		if err != nil {
+			return errors.InternalServerError(err.Error())
+		}
+
+		if err := c.Read(&meterReceived); err != nil {
+			return errors.BadRequest(err.Error())
+		}
+
+		meterReceived.UpdatedAt = time.Now()
+		if err := meterReceived.Validate(); err != nil {
+			return errors.ValidationRequest(err.Error())
+		}
+
+		meterUpdated, err := meterReceived.UpdateAMeter(server.DB)
+		if err != nil {
+			return errors.InternalServerError(err.Error())
+		}
+
+		return c.Write(meterUpdated)
+	}
+}
+
+// UpdateMeterByMeterNumber
+func (server *Server) UpdateMeterByMeterNumber() routing.Handler {
+	return func(c *routing.Context) error {
+		var meter models.Meter
+		mno := stringToUInt64(c.Param("id"))
+		if mno == 0 {
+			return errors.InternalServerError("Invalid Meter Number")
+		}
+
+		meter.MeterNumber = mno
+		meterReceived, err := meter.GetMeterByMeterNumber(server.DB)
 		if err != nil {
 			return errors.InternalServerError(err.Error())
 		}

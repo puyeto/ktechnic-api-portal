@@ -22,7 +22,7 @@ type Meter struct {
 	GatewayID        uint32              `gorm:"not null;" json:"gateway_id"`
 	PricePlanID      uint32              `json:"price_plan_id" gorm:"not null;"`
 	MeterName        string              `gorm:"not null;" json:"meter_name"`
-	MeterNumber      int64               `gorm:"not null;" json:"meter_number"`
+	MeterNumber      uint64              `gorm:"not null;" json:"meter_number"`
 	Status           int8                `gorm:"not null;" json:"status" db:"status"`
 	MeterDescription string              `gorm:"null;" json:"meter_description"`
 	ValveStatus      int8                `gorm:"not null;" json:"valve_status"`
@@ -145,12 +145,25 @@ func (m *Meter) ListAllMeters(db *gorm.DB, roleid uint32, offset, limit int) (*[
 }
 
 // FindMeterByID ...
-func (m *Meter) FindMeterByID(db *gorm.DB) (*Meter, error) {
+func (m *Meter) GetMeterByID(db *gorm.DB) (*Meter, error) {
 	var err error
 	err = db.Debug().Model(m).Where("id = ?", m.ID).Take(&m).Error
 	if err != nil {
 		return m, err
 	}
+	if m.ID != 0 {
+		db.Debug().Table("companies").Model(&CompanyShortDetails{}).Where("id = ?", m.CompanyID).Take(&m.Company)
+		db.Debug().Model(&Gateway{}).Where("id = ?", m.GatewayID).Take(&m.Gateway)
+	}
+	return m, nil
+}
+
+// GetMeterByMeterNumber ...
+func (m *Meter) GetMeterByMeterNumber(db *gorm.DB) (*Meter, error) {
+	if err := db.Debug().Model(m).Where("meter_number = ?", m.MeterNumber).Take(&m).Error; err != nil {
+		return m, err
+	}
+
 	if m.ID != 0 {
 		db.Debug().Table("companies").Model(&CompanyShortDetails{}).Where("id = ?", m.CompanyID).Take(&m.Company)
 		db.Debug().Model(&Gateway{}).Where("id = ?", m.GatewayID).Take(&m.Gateway)
@@ -170,6 +183,7 @@ func (m *Meter) UpdateAMeter(db *gorm.DB) (*Meter, error) {
 			"updated_at":        m.UpdatedAt,
 			"status":            m.Status,
 			"valve_status":      m.ValveStatus,
+			"last_seen":         m.LastSeen,
 		},
 	).Error
 

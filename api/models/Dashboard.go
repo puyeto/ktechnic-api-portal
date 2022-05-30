@@ -12,7 +12,7 @@ type UserStats struct {
 }
 
 type MaterStats struct {
-	MeterNumber               int64   `json:"meter_number"`
+	MeterNumber               uint64  `json:"meter_number"`
 	MeterUnitsBalance         float32 `json:"meter_units_balance"`
 	MeterWalletBalance        float32 `json:"meter_wallet_balance"`
 	MeterConsumptionThisWeek  float32 `json:"meter_consumption_this_week"`
