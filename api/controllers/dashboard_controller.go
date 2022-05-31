@@ -29,7 +29,7 @@ func (server *Server) UserStatsHandler() routing.Handler {
 		meter := models.Meter{}
 		meter.CompanyID = companyid
 		meter.AddedBy = userid
-		mCount := meter.CountMeters(server.DB, roleid)
+		mCount := meter.Count(server.DB, roleid)
 
 		// Get User Count
 		user := models.User{}

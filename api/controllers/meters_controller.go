@@ -27,8 +27,7 @@ func (server *Server) CreateMeter() routing.Handler {
 
 		meter.AddedBy = auth.ExtractTokenID(c)
 		meter.CompanyID = auth.ExtractCompanyID(c)
-
-		meterCreated, err := meter.SaveMeter(server.DB)
+		meterCreated, err := meter.Create(server.DB)
 		if err != nil {
 			return errors.InternalServerError(err.Error())
 		}
@@ -45,7 +44,7 @@ func (server *Server) CountMeters() routing.Handler {
 		roleid := auth.ExtractRoleID(c)
 		meter.AddedBy = auth.ExtractTokenID(c)
 
-		count := meter.CountMeters(server.DB, roleid)
+		count := meter.Count(server.DB, roleid)
 		if count == 0 {
 			return errors.InternalServerError("No Data Found")
 		}
@@ -67,13 +66,13 @@ func (server *Server) ListMeters() routing.Handler {
 		roleid := auth.ExtractRoleID(c)
 		meter.AddedBy = auth.ExtractTokenID(c)
 
-		count := meter.CountMeters(server.DB, roleid)
+		count := meter.Count(server.DB, roleid)
 		if count == 0 {
 			return errors.InternalServerError("No Data Found")
 		}
 
 		paginatedList := getPaginatedListFromRequest(c, count, page, perPage)
-		meters, err := meter.ListAllMeters(server.DB, roleid, paginatedList.Offset(), paginatedList.Limit())
+		meters, err := meter.List(server.DB, roleid, paginatedList.Offset(), paginatedList.Limit())
 		if err != nil {
 			return errors.InternalServerError(err.Error())
 		}
@@ -145,7 +144,7 @@ func (server *Server) UpdateMeter() routing.Handler {
 			return errors.ValidationRequest(err.Error())
 		}
 
-		meterUpdated, err := meterReceived.UpdateAMeter(server.DB)
+		meterUpdated, err := meterReceived.Update(server.DB)
 		if err != nil {
 			return errors.InternalServerError(err.Error())
 		}
@@ -180,7 +179,7 @@ func (server *Server) UpdateMeterByMeterNumber() routing.Handler {
 			return errors.ValidationRequest(err.Error())
 		}
 
-		meterUpdated, err := meterReceived.UpdateAMeter(server.DB)
+		meterUpdated, err := meterReceived.Update(server.DB)
 		if err != nil {
 			return errors.InternalServerError(err.Error())
 		}
@@ -200,7 +199,7 @@ func (server *Server) DeleteMeter() routing.Handler {
 		}
 
 		meter.ID = uint32(mid)
-		if err := meter.DeleteAMeter(server.DB); err != nil {
+		if err := meter.Delete(server.DB); err != nil {
 			return errors.InternalServerError(err.Error())
 		}
 

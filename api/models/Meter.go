@@ -3,7 +3,6 @@ package models
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strconv"
 	"time"
 
@@ -26,9 +25,9 @@ type Meter struct {
 	Status           int8                `gorm:"not null;" json:"status" db:"status"`
 	MeterDescription string              `gorm:"null;" json:"meter_description"`
 	ValveStatus      int8                `gorm:"not null;" json:"valve_status"`
-	LastSeen         time.Time           `gorm:"null;" json:"last_seen"`
-	CreatedAt        time.Time           `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
-	UpdatedAt        time.Time           `gorm:"default:CURRENT_TIMESTAMP" json:"updated_at"`
+	LastSeen         time.Time           `gorm:"not null" json:"last_seen"`
+	CreatedAt        time.Time           `gorm:"->:false;<-:create" json:"created_at"`
+	UpdatedAt        time.Time           `gorm:"->:false;<-:create" json:"updated_at"`
 	AddedBy          uint32              `gorm:"not null;" json:"added_by"`
 	Gateway          Gateway             `gorm:"-" json:"gateway_details"`
 	Company          CompanyShortDetails `gorm:"-" json:"company_details"`
@@ -44,7 +43,6 @@ func (m *Meter) Prepare() {
 
 // Validate ...
 func (m *Meter) Validate() error {
-
 	if m.MeterName == "" {
 		return errors.New("Meter Name is Required")
 	}
@@ -62,7 +60,7 @@ func (m *Meter) Validate() error {
 }
 
 // SaveMeter ...
-func (m *Meter) SaveMeter(db *gorm.DB) (*Meter, error) {
+func (m *Meter) Create(db *gorm.DB) (*Meter, error) {
 	exist, err := m.IsMeterExist(db)
 	if err != nil {
 		return m, err
@@ -70,8 +68,6 @@ func (m *Meter) SaveMeter(db *gorm.DB) (*Meter, error) {
 	if exist == true {
 		return m, errors.New("Meter already exist")
 	}
-
-	fmt.Println(m.AddedBy)
 
 	if err := db.Debug().Model(m).Create(&m).Error; err != nil {
 		return m, err
@@ -90,7 +86,7 @@ func (m *Meter) IsMeterExist(db *gorm.DB) (bool, error) {
 }
 
 // Count Meters ...
-func (m *Meter) CountMeters(db *gorm.DB, roleid uint32) int {
+func (m *Meter) Count(db *gorm.DB, roleid uint32) int {
 	var count int
 	query := db.Debug().Model(m)
 	if roleid == 1002 {
@@ -104,7 +100,7 @@ func (m *Meter) CountMeters(db *gorm.DB, roleid uint32) int {
 }
 
 // ListAllMeters ...
-func (m *Meter) ListAllMeters(db *gorm.DB, roleid uint32, offset, limit int) (*[]Meter, error) {
+func (m *Meter) List(db *gorm.DB, roleid uint32, offset, limit int) (*[]Meter, error) {
 	var err error
 	meters := []Meter{}
 	tx := db.Begin()
@@ -168,7 +164,7 @@ func (m *Meter) GetMeterByMeterNumber(db *gorm.DB) (*Meter, error) {
 }
 
 // UpdateAMeter ...
-func (m *Meter) UpdateAMeter(db *gorm.DB) (*Meter, error) {
+func (m *Meter) Update(db *gorm.DB) (*Meter, error) {
 	err := db.Debug().Model(m).Where("id = ?", m.ID).Updates(
 		map[string]interface{}{
 			"gateway_id":        m.GatewayID,
@@ -187,7 +183,7 @@ func (m *Meter) UpdateAMeter(db *gorm.DB) (*Meter, error) {
 }
 
 // DeleteAMeter ...
-func (m *Meter) DeleteAMeter(db *gorm.DB) error {
+func (m *Meter) Delete(db *gorm.DB) error {
 
 	if err := db.Debug().Model(m).Where("id = ?", m.ID).Delete(m).Error; err != nil {
 		if gorm.IsRecordNotFoundError(db.Error) {
