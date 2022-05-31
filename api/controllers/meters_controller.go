@@ -157,13 +157,15 @@ func (server *Server) UpdateMeter() routing.Handler {
 // UpdateMeterByMeterNumber
 func (server *Server) UpdateMeterByMeterNumber() routing.Handler {
 	return func(c *routing.Context) error {
-		var meter models.Meter
-		mno := stringToUInt64(c.Param("id"))
-		if mno == 0 {
+		var (
+			meter models.Meter
+			id    = stringToUInt64(c.Param("id"))
+		)
+		if id == 0 {
 			return errors.InternalServerError("Invalid Meter Number")
 		}
 
-		meter.MeterNumber = mno
+		meter.MeterNumber = id
 		meterReceived, err := meter.GetMeterByMeterNumber(server.DB)
 		if err != nil {
 			return errors.InternalServerError(err.Error())
@@ -192,12 +194,13 @@ func (server *Server) DeleteMeter() routing.Handler {
 	return func(c *routing.Context) error {
 		var meter models.Meter
 
-		vid, err := strconv.Atoi(c.Param("id"))
+		mid, err := strconv.Atoi(c.Param("id"))
 		if err != nil {
 			return errors.BadRequest(err.Error())
 		}
 
-		if err := meter.DeleteAMeter(server.DB, uint32(vid)); err != nil {
+		meter.ID = uint32(mid)
+		if err := meter.DeleteAMeter(server.DB); err != nil {
 			return errors.InternalServerError(err.Error())
 		}
 

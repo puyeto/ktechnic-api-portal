@@ -23,8 +23,12 @@ func (s *Server) InitializeRoutes(rg *routing.RouteGroup) {
 	rg.Get("/meter-stats", s.MeterStatsHandler())
 
 	// Companies Route
-	rg.Post("/companies", s.CreateCompanies())
-	rg.Get("/companies", s.ListCompanies())
+	rg.Get("/companies/get/<id>", s.GetCompaniesHandler())
+	rg.Post("/companies/create", s.CreateCompaniesHandler())
+	rg.Get("/companies/list", s.ListCompaniesHandler())
+	rg.Get("/companies/count", s.CountCompaniesHandler())
+	rg.Put("/companies/update/<id>", s.UpdateCompaniesHandler())
+	rg.Delete("/companies/delete/<id>", s.DeleteCompaniesHandler())
 
 	// Users routings
 	rg.Post("/users", s.CreateUserController())
@@ -62,4 +66,11 @@ func (s *Server) InitializeRoutes(rg *routing.RouteGroup) {
 	rg.Get("/pricing/plan", s.ListPricePlanHandler())
 	rg.Post("/pricing/plan", s.CreatePricePlanHandler())
 	rg.Delete("/pricing/plan/<id>", s.DeletePricePlanHandler())
+
+	rg.Get("/building/get/<id>", s.GetBuildingHandler())
+	rg.Get("/buildings/count", s.CountBuildingsHandler())
+	rg.Get("/buildings/list", s.ListBuildingsHandler())
+	rg.Post("/buildings/create", s.CreateBuildingHandler())
+	rg.Put("/buildings/update/<id>", s.UpdateBuildingHandler())
+	rg.Delete("/buildings/delete/<id>", s.DeleteBuildingHandler())
 }

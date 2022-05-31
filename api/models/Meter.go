@@ -125,7 +125,6 @@ func (m *Meter) ListAllMeters(db *gorm.DB, roleid uint32, offset, limit int) (*[
 	}
 
 	err = query.Model(m).Offset(offset).Limit(limit).Find(&meters).Error
-
 	if err != nil {
 		return &meters, err
 	}
@@ -137,11 +136,8 @@ func (m *Meter) ListAllMeters(db *gorm.DB, roleid uint32, offset, limit int) (*[
 		}
 	}
 
-	if err := tx.Commit().Error; err != nil {
-		return &meters, err
-	}
-
-	return &meters, nil
+	err = tx.Commit().Error
+	return &meters, err
 }
 
 // FindMeterByID ...
@@ -191,9 +187,9 @@ func (m *Meter) UpdateAMeter(db *gorm.DB) (*Meter, error) {
 }
 
 // DeleteAMeter ...
-func (m *Meter) DeleteAMeter(db *gorm.DB, vid uint32) error {
+func (m *Meter) DeleteAMeter(db *gorm.DB) error {
 
-	if err := db.Debug().Model(m).Where("id = ?", vid).Delete(m).Error; err != nil {
+	if err := db.Debug().Model(m).Where("id = ?", m.ID).Delete(m).Error; err != nil {
 		if gorm.IsRecordNotFoundError(db.Error) {
 			return errors.New("Meter not found")
 		}

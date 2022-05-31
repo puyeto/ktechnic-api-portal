@@ -20,7 +20,7 @@ func CreateToken(u *models.User) (string, error) {
 	token, err := auth.NewJWT(jwt.MapClaims{
 		"id":         u.ID,
 		"authorized": true,
-		"exp":        time.Now().Add(time.Hour * 2).Unix(),
+		"exp":        time.Now().Add(time.Hour * 72).Unix(),
 		"company_id": u.CompanyID,
 		"role_id":    u.RoleID,
 	}, os.Getenv("API_SECRET"))

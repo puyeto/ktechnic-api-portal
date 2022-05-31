@@ -17,6 +17,7 @@ type Companies struct {
 	CompanyPhone    string    `json:"company_phone"`
 	CompanyEmail    string    `json:"company_email"`
 	CompanyLocation string    `json:"company_location"`
+	Status          uint8     `json:"status"`
 	UpdatedAt       time.Time `json:"updated_at"`
 	CreatedAt       time.Time `json:"created_at"`
 	AddedBy         uint32    `json:"added_by"`
@@ -30,6 +31,7 @@ type CompanyShortDetails struct {
 // Prepare ...
 func (p *Companies) Prepare() {
 	p.ID = 0
+	p.Status = 1
 	p.CompanyName = html.EscapeString(strings.ToUpper(p.CompanyName))
 	p.CompanyAlias = html.EscapeString(strings.ToUpper(p.CompanyAlias))
 	p.CompanyLocation = html.EscapeString(strings.TrimSpace(p.CompanyLocation))
@@ -59,39 +61,70 @@ func (p *Companies) Validate() error {
 	return nil
 }
 
+// Get ...
+func (c *Companies) Get(db *gorm.DB) (*Companies, error) {
+	err := db.Debug().Model(c).Where("id = ?", c.ID).First(&c).Error
+	return c, err
+}
+
 // SaveCompanyDetails ...
-func (p *Companies) SaveCompanyDetails(db *gorm.DB) (*Companies, error) {
-	// Note the use of tx as the database handle once you are within a transaction
-	tx := db.Begin()
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-	if err := tx.Error; err != nil {
-		return &Companies{}, err
+func (c *Companies) Create(db *gorm.DB) (*Companies, error) {
+	err := db.Debug().Model(c).Create(&c).Error
+	return c, err
+}
+
+// Count Meters ...
+func (c *Companies) Count(db *gorm.DB, roleid uint32) int {
+	var count int
+	query := db.Debug().Model(c)
+	if roleid > 1002 {
+		query = query.Where("added_by = ?", c.AddedBy)
 	}
 
-	err := tx.Debug().Model(&Companies{}).Create(&p).Error
-	if err != nil {
-		return &Companies{}, err
-	}
-
-	if err = tx.Commit().Error; err != nil {
-		return &Companies{}, err
-	}
-
-	return p, nil
+	query.Count(&count)
+	return count
 }
 
 // List ...
-func (p *Companies) List(db *gorm.DB) (*[]Companies, error) {
-	var err error
-	con := []Companies{}
-	err = db.Debug().Model(&Companies{}).Limit(100).Find(&con).Error
-	if err != nil {
-		return &[]Companies{}, err
+func (c *Companies) List(db *gorm.DB, roleid uint32, offset, limit int) (*[]Companies, error) {
+	var (
+		err   error
+		res   = []Companies{}
+		query = db.Debug().Model(c)
+	)
+
+	if roleid > 1002 {
+		query = query.Where("added_by = ?", c.AddedBy)
 	}
 
-	return &con, nil
+	err = query.Offset(offset).Limit(limit).Find(&res).Error
+	return &res, err
+}
+
+// Update Companies ...
+func (c *Companies) Update(db *gorm.DB) (*Companies, error) {
+	err := db.Debug().Model(c).Where("id = ?", c.ID).Updates(
+		map[string]interface{}{
+			"company_name":     c.CompanyName,
+			"company_alias":    c.CompanyAlias,
+			"company_phone":    c.CompanyPhone,
+			"company_email":    c.CompanyEmail,
+			"company_location": c.CompanyLocation,
+			"status":           c.Status,
+		},
+	).Error
+
+	return c, err
+}
+
+// Delete ...
+func (c *Companies) Delete(db *gorm.DB) error {
+	if err := db.Debug().Model(c).Where("id = ?", c.ID).Delete(&c).Error; err != nil {
+		if gorm.IsRecordNotFoundError(db.Error) {
+			return errors.New("Company not found")
+		}
+		return db.Error
+	}
+
+	return nil
 }
