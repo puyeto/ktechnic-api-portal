@@ -30,6 +30,27 @@ func (server *Server) GetBuildingHandler() routing.Handler {
 	}
 }
 
+// Get Building House Numbers ...
+func (server *Server) GetBuildingHouseNumbersHandler() routing.Handler {
+	return func(c *routing.Context) error {
+		var (
+			id    = stringToUInt64(c.Param("id"))
+			build = models.BuildingWithHouseNo{}
+		)
+		if id == 0 {
+			return errors.InternalServerError("Invalid Building Detail")
+		}
+
+		build.ID = uint32(id)
+		res, err := build.GetWithHouseNumbers(server.DB)
+		if err != nil {
+			return errors.InternalServerError(err.Error())
+		}
+
+		return c.Write(res)
+	}
+}
+
 // Count Meters ...
 func (server *Server) CountBuildingsHandler() routing.Handler {
 	return func(c *routing.Context) error {
@@ -149,6 +170,27 @@ func (server *Server) DeleteBuildingHandler() routing.Handler {
 
 		build.ID = uint32(id)
 		if err := build.Delete(server.DB); err != nil {
+			return errors.InternalServerError(err.Error())
+		}
+
+		return c.Write(map[string]interface{}{
+			"result": "success",
+		})
+	}
+}
+
+// Create Building House Numbers
+func (server *Server) CreateHouseNumbersHandler() routing.Handler {
+	return func(c *routing.Context) error {
+		var (
+			build models.BuildingHouseNumber
+		)
+
+		if err := c.Read(&build); err != nil {
+			return errors.BadRequest(err.Error())
+		}
+
+		if err := build.Create(server.DB); err != nil {
 			return errors.InternalServerError(err.Error())
 		}
 

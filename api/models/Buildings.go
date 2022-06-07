@@ -33,6 +33,21 @@ func (b *Buildings) Get(db *gorm.DB) (*Buildings, error) {
 	return b, err
 }
 
+type BuildingWithHouseNo struct {
+	Buildings
+	BuildingHouseNumbers []BuildingHouseNumbers `gorm:"-" json:"building_house_numbers"`
+}
+
+// Get ...
+func (b *BuildingWithHouseNo) GetWithHouseNumbers(db *gorm.DB) (*BuildingWithHouseNo, error) {
+	if err := db.Debug().Table("buildings").Model(b).Where("id = ?", b.ID).Take(&b).Error; err != nil {
+		return b, err
+	}
+
+	err := db.Debug().Model(b).Where("building_id = ?", b.ID).Limit(100).Find(&b.BuildingHouseNumbers).Error
+	return b, err
+}
+
 // Count Meters ...
 func (b *Buildings) Count(db *gorm.DB, roleid uint32) int {
 	var count int
@@ -92,4 +107,30 @@ func (b *Buildings) Delete(db *gorm.DB) error {
 	}
 
 	return nil
+}
+
+type BuildingHouseNumber struct {
+	BuildingID           uint32                 `json:"building_id"`
+	BuildingHouseNumbers []BuildingHouseNumbers `json:"building_house_numbers"`
+}
+
+type BuildingHouseNumbers struct {
+	ID          uint32 `gorm:"primary_key;auto_increment" json:"id"`
+	BuildingID  uint32 `gorm:"->:false;<-:create" json:"building_id"`
+	HouseDetail string `json:"house_detail"`
+}
+
+// Create Building ...
+func (b *BuildingHouseNumber) Create(db *gorm.DB) error {
+	var err error
+	for _, val := range b.BuildingHouseNumbers {
+		if val.HouseDetail != "" {
+			val.BuildingID = b.BuildingID
+			if err = db.Debug().Model(BuildingHouseNumbers{}).Create(&val).Error; err != nil {
+				break
+			}
+		}
+	}
+
+	return err
 }

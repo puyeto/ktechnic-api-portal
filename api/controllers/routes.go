@@ -68,9 +68,11 @@ func (s *Server) InitializeRoutes(rg *routing.RouteGroup) {
 	rg.Delete("/pricing/plan/<id>", s.DeletePricePlanHandler())
 
 	rg.Get("/building/get/<id>", s.GetBuildingHandler())
+	rg.Get("/building/get-with-houses/<id>", s.GetBuildingHouseNumbersHandler())
 	rg.Get("/buildings/count", s.CountBuildingsHandler())
 	rg.Get("/buildings/list", s.ListBuildingsHandler())
 	rg.Post("/buildings/create", s.CreateBuildingHandler())
 	rg.Put("/buildings/update/<id>", s.UpdateBuildingHandler())
 	rg.Delete("/buildings/delete/<id>", s.DeleteBuildingHandler())
+	rg.Post("/buildings/house-number", s.CreateHouseNumbersHandler())
 }
