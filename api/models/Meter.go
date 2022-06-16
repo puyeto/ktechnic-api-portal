@@ -35,6 +35,7 @@ type Meter struct {
 
 // Prepare ...
 func (m *Meter) Prepare() {
+	m.MeterNumber, _ = app.GenerateRandomNumber(8)
 	m.CreatedAt = time.Now()
 	m.UpdatedAt = time.Now()
 	m.ValveStatus = 1
