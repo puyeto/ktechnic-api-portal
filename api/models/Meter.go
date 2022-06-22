@@ -21,11 +21,14 @@ type Meter struct {
 	GatewayID        uint32              `gorm:"not null;" json:"gateway_id"`
 	PricePlanID      uint32              `json:"price_plan_id" gorm:"not null;"`
 	MeterName        string              `gorm:"not null;" json:"meter_name"`
+	MeterType        string              `gorm:"not null;" json:"meter_type"`
 	MeterNumber      uint64              `gorm:"not null;" json:"meter_number"`
 	Status           int8                `gorm:"not null;" json:"status" db:"status"`
 	MeterDescription string              `gorm:"null;" json:"meter_description"`
 	ValveStatus      int8                `gorm:"not null;" json:"valve_status"`
 	LastSeen         time.Time           `gorm:"not null" json:"last_seen"`
+	PreviousReading  float32             `gorm:"not null" json:"previous_reading"`
+	CurrentReading   float32             `gorm:"not null" json:"current_reading"`
 	CreatedAt        time.Time           `gorm:"->:false;<-:create" json:"created_at"`
 	UpdatedAt        time.Time           `gorm:"->:false;<-:create" json:"updated_at"`
 	AddedBy          uint32              `gorm:"not null;" json:"added_by"`
@@ -35,7 +38,7 @@ type Meter struct {
 
 // Prepare ...
 func (m *Meter) Prepare() {
-	m.MeterNumber, _ = app.GenerateRandomNumber(8)
+	m.MeterNumber, _ = app.GenerateRandomNumber(10)
 	m.CreatedAt = time.Now()
 	m.UpdatedAt = time.Now()
 	m.ValveStatus = 1
@@ -87,9 +90,14 @@ func (m *Meter) IsMeterExist(db *gorm.DB) (bool, error) {
 }
 
 // Count Meters ...
-func (m *Meter) Count(db *gorm.DB, roleid uint32) int {
+func (m *Meter) Count(db *gorm.DB, roleid uint32, gatewayid int) int {
 	var count int
 	query := db.Debug().Model(m)
+
+	// where clause
+	if gatewayid > 0 {
+		query = query.Where("gateway_id = ?", gatewayid)
+	}
 	if roleid == 1002 {
 		query = query.Where("company_id = ?", m.CompanyID)
 	} else if roleid > 1002 {
@@ -101,7 +109,7 @@ func (m *Meter) Count(db *gorm.DB, roleid uint32) int {
 }
 
 // ListAllMeters ...
-func (m *Meter) List(db *gorm.DB, roleid uint32, offset, limit int) (*[]Meter, error) {
+func (m *Meter) List(db *gorm.DB, roleid uint32, offset, limit, gatewayid int) (*[]Meter, error) {
 	var err error
 	meters := []Meter{}
 	tx := db.Begin()
@@ -115,6 +123,11 @@ func (m *Meter) List(db *gorm.DB, roleid uint32, offset, limit int) (*[]Meter, e
 	}
 
 	query := tx.Debug()
+
+	// where clause
+	if gatewayid > 0 {
+		query = query.Where("gateway_id = ?", gatewayid)
+	}
 	if roleid == 1002 {
 		query = query.Where("company_id = ?", m.CompanyID)
 	} else if roleid > 1002 {
@@ -166,7 +179,25 @@ func (m *Meter) GetMeterByMeterNumber(db *gorm.DB) (*Meter, error) {
 
 // UpdateAMeter ...
 func (m *Meter) Update(db *gorm.DB) (*Meter, error) {
-	err := db.Debug().Model(m).Where("id = ?", m.ID).Updates(
+	tx := db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+	if err := tx.Error; err != nil {
+		return m, err
+	}
+
+	if err := tx.Model(m).Create(map[string]interface{}{
+		"current_reading":  m.CurrentReading,
+		"previous_reading": m.PreviousReading,
+	},
+	).Error; err != nil {
+		return m, err
+	}
+
+	err := tx.Model(m).Where("id = ?", m.ID).Updates(
 		map[string]interface{}{
 			"gateway_id":        m.GatewayID,
 			"price_plan_id":     m.PricePlanID,
@@ -177,6 +208,8 @@ func (m *Meter) Update(db *gorm.DB) (*Meter, error) {
 			"status":            m.Status,
 			"valve_status":      m.ValveStatus,
 			"last_seen":         m.LastSeen,
+			"current_reading":   m.CurrentReading,
+			"previous_reading":  m.PreviousReading,
 		},
 	).Error
 

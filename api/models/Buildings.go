@@ -7,18 +7,23 @@ import (
 )
 
 type Buildings struct {
-	ID               uint32 `gorm:"primary_key;auto_increment" json:"id"`
-	CompanyID        uint32 `gorm:"not null;" json:"company_id"`
-	BuildingName     string `json:"building_name"`
-	BuildingLocation string `json:"building_location"`
-	Status           uint8  `json:"status"`
-	AddedBy          uint32 `json:"added_by"`
+	ID                   uint32                 `gorm:"primary_key;auto_increment" json:"id"`
+	CompanyID            uint32                 `gorm:"not null;" json:"company_id"`
+	GatewayID            uint32                 `gorm:"not null;" json:"gateway_id"`
+	BuildingName         string                 `json:"building_name"`
+	BuildingLocation     string                 `json:"building_location"`
+	Status               uint8                  `json:"status"`
+	AddedBy              uint32                 `json:"added_by"`
+	BuildingHouseNumbers []BuildingHouseNumbers `gorm:"-" json:"building_house_numbers"`
 }
 
 // Validate ...
 func (b *Buildings) Validate() error {
 	if b.BuildingName == "" {
 		return errors.New("Building Name is Required")
+	}
+	if b.GatewayID == 0 {
+		return errors.New("Building gateway is Required")
 	}
 	return nil
 }

@@ -39,12 +39,13 @@ func (server *Server) CreateMeter() routing.Handler {
 // Count Meters ...
 func (server *Server) CountMeters() routing.Handler {
 	return func(c *routing.Context) error {
+		gatewayid := parseInt(c.Query("gateway_id"), 0)
 		meter := models.Meter{}
 		meter.CompanyID = auth.ExtractCompanyID(c)
 		roleid := auth.ExtractRoleID(c)
 		meter.AddedBy = auth.ExtractTokenID(c)
 
-		count := meter.Count(server.DB, roleid)
+		count := meter.Count(server.DB, roleid, gatewayid)
 		if count == 0 {
 			return errors.InternalServerError("No Data Found")
 		}
@@ -60,19 +61,20 @@ func (server *Server) ListMeters() routing.Handler {
 	return func(c *routing.Context) error {
 		page := parseInt(c.Query("page"), 1)
 		perPage := parseInt(c.Query("per_page"), 0)
+		gatewayid := parseInt(c.Query("gateway_id"), 0)
 		meter := models.Meter{}
 
 		meter.CompanyID = auth.ExtractCompanyID(c)
 		roleid := auth.ExtractRoleID(c)
 		meter.AddedBy = auth.ExtractTokenID(c)
 
-		count := meter.Count(server.DB, roleid)
+		count := meter.Count(server.DB, roleid, gatewayid)
 		if count == 0 {
 			return errors.InternalServerError("No Data Found")
 		}
 
 		paginatedList := getPaginatedListFromRequest(c, count, page, perPage)
-		meters, err := meter.List(server.DB, roleid, paginatedList.Offset(), paginatedList.Limit())
+		meters, err := meter.List(server.DB, roleid, paginatedList.Offset(), paginatedList.Limit(), gatewayid)
 		if err != nil {
 			return errors.InternalServerError(err.Error())
 		}
@@ -135,6 +137,7 @@ func (server *Server) UpdateMeter() routing.Handler {
 			return errors.InternalServerError(err.Error())
 		}
 
+		meterReceived.PreviousReading = meterReceived.CurrentReading
 		if err := c.Read(&meterReceived); err != nil {
 			return errors.BadRequest(err.Error())
 		}
