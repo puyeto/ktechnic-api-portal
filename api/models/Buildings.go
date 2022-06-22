@@ -173,14 +173,14 @@ func (b *BuildingHouseNumber) Create(db *gorm.DB) error {
 
 	for _, val := range b.BuildingHouseNumbers {
 		if val.HouseDetail != "" {
-			val.BuildingID = b.ID
+			val.BuildingID = b.BuildingID
 			if err := tx.Debug().Model(BuildingHouseNumbers{}).Create(&val).Error; err != nil {
 				return err
 			}
 
 			if val.MeterID > 0 {
 				meterval := MeterHouses{}
-				meterval.BuildingID = b.ID
+				meterval.BuildingID = b.BuildingID
 				meterval.MeterID = val.MeterID
 				meterval.HouseID = val.ID
 				if err := tx.Debug().Model(MeterHouses{}).Create(&meterval).Error; err != nil {
