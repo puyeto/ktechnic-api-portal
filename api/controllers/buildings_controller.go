@@ -35,7 +35,7 @@ func (server *Server) GetBuildingHouseNumbersHandler() routing.Handler {
 	return func(c *routing.Context) error {
 		var (
 			id    = stringToUInt64(c.Param("id"))
-			build = models.BuildingWithHouseNo{}
+			build = models.Buildings{}
 		)
 		if id == 0 {
 			return errors.InternalServerError("Invalid Building Detail")
