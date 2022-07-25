@@ -54,6 +54,5 @@ func main() {
 
 		// Handle connections in a new goroutine.
 		go controllers.HandleConnection(conn)
-
 	}
 }
